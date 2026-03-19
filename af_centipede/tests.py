@@ -1,27 +1,34 @@
-from otree.api import Bot
+from otree.api import Bot, SubmissionMustFail, expect
 from . import *
 
 
 class PlayerBot(Bot):
+    cases = ['direct_take', 'direct_pass', 'strategy_take', 'strategy_pass']
+
     def play_round(self):
+        self.player.session.config['use_strategy_method'] = self.case.startswith('strategy')
+
         if self.round_number == 1:
             yield Introduction
 
         if use_strategy_method(self.player):
-            if self.round_number == 1:
-                data = {
-                    f'strategy_take_{r}': False
-                    for r in range(1, C.NUM_ROUNDS + 1)
-                    if (r % 2 == 1 and self.player.id_in_group == 1)
-                    or (r % 2 == 0 and self.player.id_in_group == 2)
-                }
+            if StrategyDecision.is_displayed(self.player):
+                fields = strategy_fields_for_player(self.player)
+                invalid = {fields[0]: 'invalid'}
+                yield SubmissionMustFail(StrategyDecision, invalid)
+                data = {name: False for name in fields}
+                if self.case == 'strategy_take' and self.player.id_in_group == 1:
+                    data[fields[0]] = True
                 yield StrategyDecision, data
         else:
-            is_my_turn = (self.player.id_in_group == 1 and self.round_number % 2 == 1) or (
-                self.player.id_in_group == 2 and self.round_number % 2 == 0
-            )
-            if is_my_turn:
-                yield Decision, dict(take=False)
+            if Decision.is_displayed(self.player):
+                yield SubmissionMustFail(Decision, dict(take='invalid'))
+                yield Decision, dict(take=self.case == 'direct_take')
 
         if Results.is_displayed(self.player):
+            if self.case in ['direct_take', 'strategy_take']:
+                expected = cu(60) if self.player.id_in_group == 1 else cu(40)
+            else:
+                expected = cu(175)
+            expect(self.player.payoff, expected)
             yield Results
