@@ -1,6 +1,8 @@
 from otree.api import *
 import random
 
+from classroom_utils import bool_config_value
+
 doc = """
 Centipede Game:
 Players alternate deciding whether to take a larger share of a growing pot or pass it on.
@@ -71,8 +73,7 @@ def creating_session(subsession: Subsession):
 
 
 def use_strategy_method(player: Player):
-    session = player.session
-    return session.config.get('use_strategy_method', C.USE_STRATEGY_METHOD) or session.vars.get(
+    return bool_config_value(player, 'use_strategy_method', C.USE_STRATEGY_METHOD) or player.session.vars.get(
         'centipede_force_strategy', False
     )
 
@@ -109,6 +110,10 @@ def compute_strategy_outcome(p1: Player, p2: Player):
                 return True, 2, r
     return False, None, None
 
+
+def pot_for_round(round_number: int):
+    return C.INITIAL_POT + (round_number - 1) * C.POT_INCREMENT
+
 def set_payoffs(group: Group):
     players = group.get_players()
     use_strategy = use_strategy_method(players[0])
@@ -128,7 +133,7 @@ def set_payoffs(group: Group):
             group.taker = taker
             group.take_round = take_round
             r = take_round or C.NUM_ROUNDS
-            pot = C.INITIAL_POT + (r - 1) * C.POT_INCREMENT
+            pot = pot_for_round(r)
             if taken and taker == lone_player.id_in_group:
                 lone_player.payoff = pot * C.SHARE_TAKER
             elif taken:
@@ -147,7 +152,7 @@ def set_payoffs(group: Group):
     # determine which round ultimately ended the game
     take_round = group.field_maybe_none('take_round')
     r = take_round or C.NUM_ROUNDS
-    pot = C.INITIAL_POT + (r - 1) * C.POT_INCREMENT
+    pot = pot_for_round(r)
 
     p1 = group.get_player_by_id(1)
     p2 = group.get_player_by_id(2)
@@ -257,7 +262,7 @@ class Results(Page):
         g = player.group
         take_round = g.field_maybe_none('take_round')
         r = take_round or C.NUM_ROUNDS
-        pot = C.INITIAL_POT + (r - 1) * C.POT_INCREMENT
+        pot = pot_for_round(r)
         taker = g.field_maybe_none('taker')
         return dict(
             final_round = r,

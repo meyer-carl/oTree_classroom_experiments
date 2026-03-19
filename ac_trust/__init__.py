@@ -1,6 +1,8 @@
 from otree.api import *
 import random
 
+from classroom_utils import bool_config_value, currency_config_value, int_config_value
+
 doc = """
 Trust Game: This is a standard 2-player trust game where the amount sent by player 1 gets
 tripled. The trust game was first proposed by
@@ -65,6 +67,29 @@ for amount in C.STRATEGY_SEND_AMOUNTS:
     )
 
 
+def trust_endowment(context):
+    return currency_config_value(context, 'trust_endowment', C.ENDOWMENT)
+
+
+def trust_multiplier(context):
+    return int_config_value(context, 'trust_multiplier', C.MULTIPLIER)
+
+
+def trust_send_increment(context):
+    configured = int_config_value(context, 'trust_send_increment', C.SEND_INCREMENT)
+    if configured <= 0 or configured % C.SEND_INCREMENT != 0:
+        return C.SEND_INCREMENT
+    return configured
+
+
+def trust_strategy_send_amounts(context):
+    endowment = int(trust_endowment(context))
+    increment = trust_send_increment(context)
+    if endowment > int(C.ENDOWMENT) or endowment % C.SEND_INCREMENT != 0:
+        endowment = int(C.ENDOWMENT)
+    return list(range(0, endowment + 1, increment))
+
+
 def creating_session(subsession: Subsession):
     if subsession.round_number == 1:
         session = subsession.session
@@ -79,14 +104,13 @@ def is_unmatched(player: Player):
 
 
 def use_strategy_method(player: Player):
-    session = player.session
-    return session.config.get('use_strategy_method', C.USE_STRATEGY_METHOD) or session.vars.get(
+    return bool_config_value(player, 'use_strategy_method', C.USE_STRATEGY_METHOD) or player.session.vars.get(
         'trust_force_strategy', False
     )
 
 
-def strategy_fields():
-    return [f'strategy_send_back_{amount}' for amount in C.STRATEGY_SEND_AMOUNTS]
+def strategy_fields(player: Player):
+    return [f'strategy_send_back_{amount}' for amount in trust_strategy_send_amounts(player)]
 
 
 def random_second_mover(player: Player):
@@ -100,11 +124,13 @@ def random_second_mover(player: Player):
 def sent_back_amount_max(group: Group):
     # Function to check that the amount P2 wants to send back doesn't exceed
     # the maximum amount P2 can send back
-    return group.sent_amount * C.MULTIPLIER
+    return group.sent_amount * trust_multiplier(group)
 
 
 def set_payoffs(group: Group):
     # Function to calculate payoffs for both players
+    endowment = trust_endowment(group)
+    multiplier = trust_multiplier(group)
     players = group.get_players()
     if len(players) < C.PLAYERS_PER_GROUP:
         lone_player = players[0]
@@ -117,7 +143,7 @@ def set_payoffs(group: Group):
         else:
             group.sent_back_amount = cu(0)
 
-        lone_player.payoff = C.ENDOWMENT - group.sent_amount + group.sent_back_amount
+        lone_player.payoff = endowment - group.sent_amount + group.sent_back_amount
         return
 
     p1 = group.get_player_by_id(1)  # Get Player 1
@@ -125,14 +151,19 @@ def set_payoffs(group: Group):
     if use_strategy_method(p2):
         field = f'strategy_send_back_{int(group.sent_amount)}'
         group.sent_back_amount = getattr(p2, field)
-    p1.payoff = C.ENDOWMENT - group.sent_amount + group.sent_back_amount  # Calculate P1's payoff
-    p2.payoff = group.sent_amount * C.MULTIPLIER - group.sent_back_amount  # Calculate P2's payoff
+    p1.payoff = endowment - group.sent_amount + group.sent_back_amount  # Calculate P1's payoff
+    p2.payoff = group.sent_amount * multiplier - group.sent_back_amount  # Calculate P2's payoff
 
 
 # PAGES
 class Introduction(Page):
     # Introduction page for explaining the game to players
-    pass
+    @staticmethod
+    def vars_for_template(player: Player):
+        return dict(
+            endowment=trust_endowment(player),
+            multiplier=trust_multiplier(player),
+        )
 
 
 class Send(Page):
@@ -150,11 +181,20 @@ class Send(Page):
         return player.id_in_group == 1
 
     @staticmethod
+    def vars_for_template(player: Player):
+        return dict(
+            endowment=trust_endowment(player),
+            multiplier=trust_multiplier(player),
+        )
+
+    @staticmethod
     def error_message(player: Player, values):
+        if values['sent_amount'] > trust_endowment(player):
+            return f"You cannot send more than the session endowment of {trust_endowment(player)}."
         if use_strategy_method(player):
             amount = int(values['sent_amount'])
-            if amount % C.SEND_INCREMENT != 0:
-                return f"Please enter a multiple of {C.SEND_INCREMENT}."
+            if amount % trust_send_increment(player) != 0:
+                return f"Please enter a multiple of {trust_send_increment(player)}."
 
 
 class SendBackWaitPage(WaitPage):
@@ -178,8 +218,17 @@ class SendBack(Page):
     def vars_for_template(player: Player):
         # Variables to pass to the template
         group = player.group
-        tripled_amount = group.sent_amount * C.MULTIPLIER  # Calculate tripled amount
-        return dict(tripled_amount=tripled_amount)
+        tripled_amount = group.sent_amount * trust_multiplier(player)  # Calculate tripled amount
+        return dict(
+            tripled_amount=tripled_amount,
+            endowment=trust_endowment(player),
+            multiplier=trust_multiplier(player),
+        )
+
+    @staticmethod
+    def error_message(player: Player, values):
+        if values['sent_back_amount'] > sent_back_amount_max(player.group):
+            return f"You cannot return more than {sent_back_amount_max(player.group)}."
 
 
 class StrategySendBack(Page):
@@ -188,15 +237,23 @@ class StrategySendBack(Page):
 
     @staticmethod
     def get_form_fields(player: Player):
-        return strategy_fields()
+        return strategy_fields(player)
 
     @staticmethod
     def is_displayed(player: Player):
         return player.id_in_group == 2 and use_strategy_method(player)
 
     @staticmethod
+    def vars_for_template(player: Player):
+        return dict(
+            endowment=trust_endowment(player),
+            multiplier=trust_multiplier(player),
+            send_increment=trust_send_increment(player),
+        )
+
+    @staticmethod
     def error_message(player: Player, values):
-        missing = [name for name in strategy_fields() if values.get(name) is None]
+        missing = [name for name in strategy_fields(player) if values.get(name) is None]
         if missing:
             return "Please fill in a response for each possible amount."
 
@@ -213,7 +270,12 @@ class Results(Page):
     def vars_for_template(player: Player):
         # Variables to pass to the template
         group = player.group
-        return dict(tripled_amount=group.sent_amount * C.MULTIPLIER)  # Calculate tripled amount
+        return dict(
+            tripled_amount=group.sent_amount * trust_multiplier(player),
+            endowment=trust_endowment(player),
+            multiplier=trust_multiplier(player),
+            send_increment=trust_send_increment(player),
+        )
 
 
 class StrategySyncWaitPage(WaitPage):

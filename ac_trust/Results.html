@@ -7,11 +7,11 @@
             Participant B returned {{ group.sent_back_amount }}.
         </p>
         <p>
-            You were initially endowed with {{ C.ENDOWMENT }},
+            You were initially endowed with {{ endowment }},
             chose to send {{ group.sent_amount }},
             received {{ group.sent_back_amount }}
             thus you now have:
-            {{ C.ENDOWMENT }}-{{ group.sent_amount }}+{{ group.sent_back_amount }}=<strong>{{ player.payoff }}</strong>
+            {{ endowment }}-{{ group.sent_amount }}+{{ group.sent_back_amount }}=<strong>{{ player.payoff }}</strong>
         </p>
     {{ else }}
         <p>

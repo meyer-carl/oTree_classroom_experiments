@@ -1,6 +1,16 @@
 from otree.api import *
 import random
 
+from classroom_utils import (
+    bool_config_value,
+    currency_config_value,
+    ensure_random_paying_round,
+    is_incomplete_group,
+    next_app,
+    total_payoff,
+    unmatched_template_vars,
+)
+
 doc = """
 Repeated Prisoner's Dilemma with fixed matchings.
 Players are randomly matched in round 1 and keep the same partner
@@ -36,7 +46,7 @@ class Player(BasePlayer):
 
 # Helper to detect incomplete groups
 def is_unmatched(player: Player):
-    return len(player.group.get_players()) < C.PLAYERS_PER_GROUP
+    return is_incomplete_group(player, C.PLAYERS_PER_GROUP)
 
 # Page to notify unmatched participants and skip the app
 class Unmatched(Page):
@@ -48,11 +58,31 @@ class Unmatched(Page):
 
     @staticmethod
     def vars_for_template(player: Player):
-        return dict(required_size=C.PLAYERS_PER_GROUP)
+        return unmatched_template_vars(C.PLAYERS_PER_GROUP)
 
     @staticmethod
     def app_after_this_page(player: Player, upcoming_apps):
-        return upcoming_apps[0] if upcoming_apps else None
+        return next_app(upcoming_apps)
+
+
+def pd_payoff_a(context):
+    return currency_config_value(context, 'pd_payoff_a', C.PAYOFF_A)
+
+
+def pd_payoff_b(context):
+    return currency_config_value(context, 'pd_payoff_b', C.PAYOFF_B)
+
+
+def pd_payoff_c(context):
+    return currency_config_value(context, 'pd_payoff_c', C.PAYOFF_C)
+
+
+def pd_payoff_d(context):
+    return currency_config_value(context, 'pd_payoff_d', C.PAYOFF_D)
+
+
+def pd_pay_single_round(context):
+    return bool_config_value(context, 'pd_pay_single_round', C.PAY_SINGLE_ROUND)
 
 # ---------------- session setup ----------------
 def creating_session(subsession: Subsession):
@@ -68,12 +98,12 @@ def creating_session(subsession: Subsession):
         subsession.group_randomly()
 
         # optional: choose one random paying round and store it
-        if C.PAY_SINGLE_ROUND:
-            paying_round = random.randint(1, C.NUM_ROUNDS)
-            session.vars['paying_round'] = paying_round
-        else:
-            # If paying every round, you don't need to set paying_round
-            session.vars['paying_round'] = None
+        ensure_random_paying_round(
+            session,
+            'paying_round',
+            C.NUM_ROUNDS,
+            enabled=pd_pay_single_round(session),
+        )
 
     else:
         # copy the groups from round 1 -> fixed matching
@@ -97,10 +127,10 @@ def set_payoffs(group: Group):
 
     # payoff matrix keyed by (my_cooperate, other_cooperate)
     payoff_matrix = {
-        (False, True): C.PAYOFF_A,   # I defect, other cooperates
-        (True, True): C.PAYOFF_B,    # both cooperate
-        (False, False): C.PAYOFF_C,  # both defect
-        (True, False): C.PAYOFF_D,   # I cooperate, other defects
+        (False, True): pd_payoff_a(group),   # I defect, other cooperates
+        (True, True): pd_payoff_b(group),    # both cooperate
+        (False, False): pd_payoff_c(group),  # both defect
+        (True, False): pd_payoff_d(group),   # I cooperate, other defects
     }
 
     # compute "this round" payoff for each player:
@@ -110,7 +140,7 @@ def set_payoffs(group: Group):
         round_payoff = payoff_matrix[(p.cooperate, other.cooperate)]
 
         # If you only pay one random round:
-        if C.PAY_SINGLE_ROUND and session.vars.get('paying_round') is not None:
+        if pd_pay_single_round(group) and session.vars.get('paying_round') is not None:
             if subsession.round_number == session.vars['paying_round']:
                 p.payoff = round_payoff
             else:
@@ -125,6 +155,17 @@ class Introduction(Page):
     @staticmethod
     def is_displayed(player: Player):
         return player.round_number == 1
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return dict(
+            total_rounds=C.NUM_ROUNDS,
+            payoff_a=pd_payoff_a(player),
+            payoff_b=pd_payoff_b(player),
+            payoff_c=pd_payoff_c(player),
+            payoff_d=pd_payoff_d(player),
+            pay_single_round=pd_pay_single_round(player),
+        )
 
 
 class Decision(Page):
@@ -157,7 +198,7 @@ class Results(Page):
         """
         session = player.session
         all_rounds = player.in_all_rounds()
-        total = sum([r.payoff for r in all_rounds])
+        total = total_payoff(player)
 
         # current-round info
         current_round_number = player.round_number
@@ -176,6 +217,11 @@ class Results(Page):
             total_rounds=total_rounds,
             all_rounds=all_rounds,
             paying_round=session.vars.get('paying_round'),
+            payoff_a=pd_payoff_a(player),
+            payoff_b=pd_payoff_b(player),
+            payoff_c=pd_payoff_c(player),
+            payoff_d=pd_payoff_d(player),
+            pay_single_round=pd_pay_single_round(player),
         )
 
 

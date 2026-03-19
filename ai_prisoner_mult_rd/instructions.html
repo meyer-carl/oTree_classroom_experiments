@@ -7,11 +7,16 @@
 
         <p>
             In this experiment, you will be randomly and anonymously paired with another
-            participant for {{ C.NUM_ROUNDS }} rounds.
+            participant for {{ total_rounds }} rounds.
             Each of you simultaneously and privately chooses whether you want to
             cooperate or defect.
             Your payoffs will be determined by the choices of both as below:
         </p>
+        {{ if pay_single_round }}
+        <p>
+            A single round is randomly selected for payment. The remaining rounds are still shown for learning and discussion.
+        </p>
+        {{ endif }}
         <p><i>In each cell, the amount to the left is the payoff for
                 you and to the right for the other participant.</i></p>
 
@@ -27,13 +32,13 @@
             <tr>
                 <th rowspan=2><span style="transform: rotate(-90deg);">You</span></th>
                 <th>Cooperate</th>
-                <td>{{ C.PAYOFF_B }}, {{ C.PAYOFF_B }}</td>
-                <td>0, {{ C.PAYOFF_A }}</td>
+                <td>{{ payoff_b }}, {{ payoff_b }}</td>
+                <td>{{ payoff_d }}, {{ payoff_a }}</td>
             </tr>
             <tr>
                 <th>Defect</th>
-                <td>{{ C.PAYOFF_A }}, 0</td>
-                <td>{{ C.PAYOFF_C }}, {{ C.PAYOFF_C }}</td>
+                <td>{{ payoff_a }}, {{ payoff_d }}</td>
+                <td>{{ payoff_c }}, {{ payoff_c }}</td>
             </tr>
         </table>
 

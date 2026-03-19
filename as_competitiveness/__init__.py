@@ -2,6 +2,14 @@ from otree.api import *
 import json
 import random
 
+from classroom_utils import (
+    currency_config_value,
+    int_config_value,
+    is_incomplete_group,
+    next_app,
+    unmatched_template_vars,
+)
+
 
 doc = """
 Simple competitiveness experiment inspired by Niederle and Vesterlund.
@@ -46,7 +54,7 @@ class Player(BasePlayer):
 
 # Helper to detect incomplete groups
 def is_unmatched(player: Player):
-    return len(player.group.get_players()) < C.PLAYERS_PER_GROUP
+    return is_incomplete_group(player, C.PLAYERS_PER_GROUP)
 
 
 # Page to notify unmatched participants and skip the app
@@ -59,11 +67,11 @@ class Unmatched(Page):
 
     @staticmethod
     def vars_for_template(player: Player):
-        return dict(required_size=C.PLAYERS_PER_GROUP)
+        return unmatched_template_vars(C.PLAYERS_PER_GROUP)
 
     @staticmethod
     def app_after_this_page(player: Player, upcoming_apps):
-        return upcoming_apps[0] if upcoming_apps else None
+        return next_app(upcoming_apps)
 
 
 # Dynamic answer fields
@@ -75,13 +83,42 @@ for i in range(1, C.NUM_TASKS + 1):
     )
 
 
+def competitiveness_num_tasks(context):
+    return max(1, min(C.NUM_TASKS, int_config_value(context, 'competitiveness_num_tasks', C.NUM_TASKS)))
+
+
+def competitiveness_task_min(context):
+    return int_config_value(context, 'competitiveness_task_min', C.TASK_MIN)
+
+
+def competitiveness_task_max(context):
+    configured_max = int_config_value(context, 'competitiveness_task_max', C.TASK_MAX)
+    return max(competitiveness_task_min(context), configured_max)
+
+
+def competitiveness_time_limit(context):
+    return int_config_value(context, 'competitiveness_time_limit_seconds', C.TIME_LIMIT_SECONDS)
+
+
+def competitiveness_piece_rate(context):
+    return currency_config_value(context, 'competitiveness_piece_rate', C.PIECE_RATE)
+
+
+def competitiveness_tournament_rate(context):
+    return currency_config_value(context, 'competitiveness_tournament_rate', C.TOURNAMENT_RATE)
+
+
+def competitiveness_tournament_winners(context):
+    return max(1, int_config_value(context, 'competitiveness_tournament_winners', C.TOURNAMENT_WINNERS))
+
+
 # FUNCTIONS
 def creating_session(subsession: Subsession):
     for p in subsession.get_players():
         tasks = []
-        for _ in range(C.NUM_TASKS):
-            a = random.randint(C.TASK_MIN, C.TASK_MAX)
-            b = random.randint(C.TASK_MIN, C.TASK_MAX)
+        for _ in range(competitiveness_num_tasks(p)):
+            a = random.randint(competitiveness_task_min(p), competitiveness_task_max(p))
+            b = random.randint(competitiveness_task_min(p), competitiveness_task_max(p))
             tasks.append({'a': a, 'b': b})
         p.task_data = json.dumps(tasks)
 
@@ -127,32 +164,31 @@ def set_round_results(group: Group):
     round_number = group.subsession.round_number
     if round_number == 1:
         for p in players:
-            p.payoff = p.num_correct * C.PIECE_RATE
+            p.payoff = p.num_correct * competitiveness_piece_rate(group)
         group.winner_count = 0
         return
 
     if round_number == 2:
-        winners = _tournament_winners(players, C.TOURNAMENT_WINNERS)
+        winners = _tournament_winners(players, competitiveness_tournament_winners(group))
         group.winner_count = len(winners)
         for p in players:
             if p in winners:
                 p.is_tournament_winner = True
-                p.payoff = p.num_correct * C.TOURNAMENT_RATE
+                p.payoff = p.num_correct * competitiveness_tournament_rate(group)
             else:
                 p.payoff = cu(0)
         return
 
-    piece_players = [p for p in players if p.comp_choice == 'piece']
     tournament_players = [p for p in players if p.comp_choice == 'tournament']
-    winners = _tournament_winners(tournament_players, C.TOURNAMENT_WINNERS)
+    winners = _tournament_winners(tournament_players, competitiveness_tournament_winners(group))
     group.winner_count = len(winners)
 
     for p in players:
         if p.comp_choice == 'piece':
-            p.payoff = p.num_correct * C.PIECE_RATE
+            p.payoff = p.num_correct * competitiveness_piece_rate(group)
         elif p in winners:
             p.is_tournament_winner = True
-            p.payoff = p.num_correct * C.TOURNAMENT_RATE
+            p.payoff = p.num_correct * competitiveness_tournament_rate(group)
         else:
             p.payoff = cu(0)
 
@@ -162,6 +198,16 @@ class Introduction(Page):
     @staticmethod
     def is_displayed(player: Player):
         return player.round_number == 1
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return dict(
+            piece_rate=competitiveness_piece_rate(player),
+            tournament_rate=competitiveness_tournament_rate(player),
+            tournament_winners=competitiveness_tournament_winners(player),
+            task_count=competitiveness_num_tasks(player),
+            time_limit_seconds=competitiveness_time_limit(player),
+        )
 
 
 class Choice(Page):
@@ -175,12 +221,22 @@ class Choice(Page):
 
 class Task(Page):
     form_model = 'player'
-    form_fields = [f'answer_{i}' for i in range(1, C.NUM_TASKS + 1)]
-    timeout_seconds = C.TIME_LIMIT_SECONDS if C.TIME_LIMIT_SECONDS else None
+
+    @staticmethod
+    def get_form_fields(player: Player):
+        return [f'answer_{i}' for i in range(1, competitiveness_num_tasks(player) + 1)]
+
+    @staticmethod
+    def get_timeout_seconds(player: Player):
+        limit = competitiveness_time_limit(player)
+        return limit if limit else None
 
     @staticmethod
     def vars_for_template(player: Player):
-        return dict(tasks=_get_tasks(player))
+        return dict(
+            tasks=_get_tasks(player),
+            time_limit_seconds=competitiveness_time_limit(player),
+        )
 
 
 class ResultsWaitPage(WaitPage):
@@ -194,6 +250,11 @@ class Results(Page):
             round_number=player.round_number,
             max_score=player.group.max_score,
             winner_count=player.group.winner_count,
+            piece_rate=competitiveness_piece_rate(player),
+            tournament_rate=competitiveness_tournament_rate(player),
+            tournament_winners=competitiveness_tournament_winners(player),
+            task_count=competitiveness_num_tasks(player),
+            time_limit_seconds=competitiveness_time_limit(player),
         )
 
 

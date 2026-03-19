@@ -1,6 +1,8 @@
 from otree.api import *
 import random
 
+from classroom_utils import bool_config_value, currency_config_value
+
 doc = """
 Ultimatum Game: One player decides how to divide a certain amount between themself and the other
 player.
@@ -52,6 +54,10 @@ class Player(BasePlayer):
     )
 
 
+def ultimatum_endowment(context):
+    return currency_config_value(context, 'ultimatum_endowment', C.ENDOWMENT)
+
+
 def creating_session(subsession: Subsession):
     if subsession.round_number == 1:
         session = subsession.session
@@ -66,8 +72,7 @@ def is_unmatched(player: Player):
 
 
 def use_strategy_method(player: Player):
-    session = player.session
-    return session.config.get('use_strategy_method', C.USE_STRATEGY_METHOD) or session.vars.get(
+    return bool_config_value(player, 'use_strategy_method', C.USE_STRATEGY_METHOD) or player.session.vars.get(
         'ultimatum_force_strategy', False
     )
 
@@ -87,6 +92,7 @@ def responder_accepts_offer(responder: Player, offer):
 # FUNCTIONS
 # Function to calculate and set payoffs for both players
 def set_payoffs(group: Group):
+    endowment = ultimatum_endowment(group)
     players = group.get_players()
     if len(players) < C.PLAYERS_PER_GROUP:
         lone_player = players[0]
@@ -94,7 +100,7 @@ def set_payoffs(group: Group):
         accepted = responder_accepts_offer(responder, group.offer) if responder else False
         group.accepted = accepted
         if lone_player.id_in_group == 1:
-            lone_player.payoff = C.ENDOWMENT - group.offer if accepted else cu(0)
+            lone_player.payoff = endowment - group.offer if accepted else cu(0)
         else:
             lone_player.payoff = group.offer if accepted else cu(0)
         return
@@ -106,7 +112,7 @@ def set_payoffs(group: Group):
         group.accepted = group.offer >= p2.min_accept
 
     if group.accepted:  # Check if P2 accepted the offer
-        p1.payoff = C.ENDOWMENT - group.offer  # P1's payoff is the amount they kept
+        p1.payoff = endowment - group.offer  # P1's payoff is the amount they kept
         p2.payoff = group.offer  # P2's payoff is the amount they accepted
     else:
         p1.payoff = cu(0)  # If P2 did not accept, P1 gets nothing
@@ -116,7 +122,10 @@ def set_payoffs(group: Group):
 # Introduction page
 class Introduction(Page):
     """Explain instructions to both players."""
-    pass
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return dict(endowment=ultimatum_endowment(player))
 
 # Page where the P1 makes their decision
 class Offer(Page):
@@ -127,6 +136,15 @@ class Offer(Page):
     @staticmethod
     def is_displayed(player: Player):
         return player.id_in_group == 1
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return dict(endowment=ultimatum_endowment(player))
+
+    @staticmethod
+    def error_message(player: Player, values):
+        if values['offer'] > ultimatum_endowment(player):
+            return f"The offer cannot exceed the session endowment of {ultimatum_endowment(player)}."
     
 # Wait page to synchronize players
 class WaitForOtherPlayers(WaitPage):
@@ -149,7 +167,7 @@ class Response(Page):
     def vars_for_template(player: Player):
         return dict(
             offer = player.group.offer,
-            endowment = C.ENDOWMENT,
+            endowment = ultimatum_endowment(player),
         )
 
 
@@ -163,7 +181,7 @@ class StrategyResponse(Page):
 
     @staticmethod
     def vars_for_template(player: Player):
-        return dict(endowment=C.ENDOWMENT)
+        return dict(endowment=ultimatum_endowment(player))
 
 # Wait page to synchronize players and calculate payoffs
 class ResultsWaitPage(WaitPage):
@@ -174,10 +192,12 @@ class Results(Page):
     # Pass variables to the template for display
     @staticmethod
     def vars_for_template(player: Player):
+        endowment = ultimatum_endowment(player)
         return dict(
             offer    = player.group.offer,
             accepted = player.group.accepted,
-            kept     = C.ENDOWMENT - player.group.offer,
+            kept     = endowment - player.group.offer,
+            endowment=endowment,
         )
 
 # Wait for all groups so strategy responses are available for random matching

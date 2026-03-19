@@ -1,4 +1,5 @@
 venv
+.venv
 staticfiles
 ./db.sqlite3
 .idea
@@ -12,3 +13,5 @@ __pycache__/
 .DS_Store
 merge.ps1
 *.otreezip
+.pytest_cache/
+.ruff_cache/

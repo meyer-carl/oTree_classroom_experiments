@@ -1,6 +1,14 @@
 from otree.api import *
 import random
 
+from classroom_utils import (
+    currency_list_config_value,
+    is_incomplete_group,
+    next_app,
+    session_config_value,
+    unmatched_template_vars,
+)
+
 
 doc = """
 Market experiment with supply and demand using a single-call market.
@@ -54,11 +62,28 @@ class Player(BasePlayer):
         return 'Buyer' if self.is_buyer else 'Seller'
 
 
+def buyer_values(context):
+    return currency_list_config_value(context, 'buyer_values', C.BUYER_VALUES)
+
+
+def seller_costs(context):
+    return currency_list_config_value(context, 'seller_costs', C.SELLER_COSTS)
+
+
+def required_group_size(context):
+    return len(buyer_values(context)) + len(seller_costs(context))
+
+
+def clearing_price_rule(context):
+    rule = session_config_value(context, 'clearing_price_rule', C.CLEARING_PRICE_RULE)
+    return rule if rule in {'midpoint', 'bid', 'ask'} else C.CLEARING_PRICE_RULE
+
+
 # FUNCTIONS
 def creating_session(subsession: Subsession):
     for group in subsession.get_groups():
         players = group.get_players()
-        expected = C.NUM_BUYERS + C.NUM_SELLERS
+        expected = required_group_size(subsession)
         if len(players) != expected:
             # leave role/value assignment empty for unmatched groups
             for player in players:
@@ -68,27 +93,27 @@ def creating_session(subsession: Subsession):
             continue
 
         random.shuffle(players)
-        buyer_values = C.BUYER_VALUES.copy()
-        seller_costs = C.SELLER_COSTS.copy()
-        random.shuffle(buyer_values)
-        random.shuffle(seller_costs)
+        session_buyer_values = buyer_values(subsession)
+        session_seller_costs = seller_costs(subsession)
+        random.shuffle(session_buyer_values)
+        random.shuffle(session_seller_costs)
 
-        buyers = players[: C.NUM_BUYERS]
-        sellers = players[C.NUM_BUYERS :]
+        buyers = players[: len(session_buyer_values)]
+        sellers = players[len(session_buyer_values) :]
 
-        for player, value in zip(buyers, buyer_values):
+        for player, value in zip(buyers, session_buyer_values):
             player.is_buyer = True
             player.private_value = value
             player.private_cost = cu(0)
 
-        for player, cost in zip(sellers, seller_costs):
+        for player, cost in zip(sellers, session_seller_costs):
             player.is_buyer = False
             player.private_cost = cost
             player.private_value = cu(0)
 
 
 def is_unmatched(player: Player):
-    return len(player.group.get_players()) < C.PLAYERS_PER_GROUP
+    return is_incomplete_group(player, required_group_size(player))
 
 
 class Unmatched(Page):
@@ -100,17 +125,17 @@ class Unmatched(Page):
 
     @staticmethod
     def vars_for_template(player: Player):
-        return dict(required_size=C.PLAYERS_PER_GROUP)
+        return unmatched_template_vars(required_group_size(player))
 
     @staticmethod
     def app_after_this_page(player: Player, upcoming_apps):
-        return upcoming_apps[0] if upcoming_apps else None
+        return next_app(upcoming_apps)
 
 
-def _clearing_price(marginal_bid, marginal_ask):
-    if C.CLEARING_PRICE_RULE == 'bid':
+def _clearing_price(context, marginal_bid, marginal_ask):
+    if clearing_price_rule(context) == 'bid':
         return marginal_bid
-    if C.CLEARING_PRICE_RULE == 'ask':
+    if clearing_price_rule(context) == 'ask':
         return marginal_ask
     return (marginal_bid + marginal_ask) / 2
 
@@ -140,7 +165,7 @@ def set_market_outcome(group: Group):
     if trades:
         marginal_bid = buyers[len(trades) - 1].order_price
         marginal_ask = sellers[len(trades) - 1].order_price
-        clearing_price = _clearing_price(marginal_bid, marginal_ask)
+        clearing_price = _clearing_price(group, marginal_bid, marginal_ask)
         group.clearing_price = clearing_price
 
         for buyer, seller in trades:
@@ -154,7 +179,13 @@ def set_market_outcome(group: Group):
 
 # PAGES
 class Introduction(Page):
-    pass
+    @staticmethod
+    def vars_for_template(player: Player):
+        return dict(
+            num_buyers=len(buyer_values(player)),
+            num_sellers=len(seller_costs(player)),
+            clearing_rule=clearing_price_rule(player),
+        )
 
 
 class Order(Page):
@@ -191,7 +222,11 @@ class Results(Page):
             [p for p in group.get_players() if not p.is_buyer],
             key=lambda p: p.order_price,
         )
-        return dict(buyers=buyers, sellers=sellers)
+        return dict(
+            buyers=buyers,
+            sellers=sellers,
+            clearing_rule=clearing_price_rule(player),
+        )
 
 
 page_sequence = [Unmatched, Introduction, Order, ResultsWaitPage, Results]

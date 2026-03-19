@@ -4,15 +4,19 @@
 
     <p>
         You will solve simple addition problems. Each round uses new problems.
+        Each round contains {{ task_count }} addition problem(s).
+        {{ if time_limit_seconds }}
+            You have {{ time_limit_seconds }} second(s) on the task page.
+        {{ endif }}
     </p>
 
     <p>
-        Round 1: Piece-rate. You earn {{ C.PIECE_RATE }} for each correct answer.
+        Round 1: Piece-rate. You earn {{ piece_rate }} for each correct answer.
     </p>
 
     <p>
-        Round 2: Tournament. The top {{ C.TOURNAMENT_WINNERS }} performer(s) earn
-        {{ C.TOURNAMENT_RATE }} per correct answer. Others earn 0.
+        Round 2: Tournament. The top {{ tournament_winners }} performer(s) earn
+        {{ tournament_rate }} per correct answer. Others earn 0.
     </p>
 
     <p>
