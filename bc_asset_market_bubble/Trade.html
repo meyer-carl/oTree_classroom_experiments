@@ -1,0 +1,17 @@
+{{ block title }}Round {{ round_number }} Trade{{ endblock }}
+{{ block content }}
+
+    <p>Your cash: {{ cash }}</p>
+    <p>Your assets: {{ asset_units }}</p>
+    <p>Current fundamental value per asset: {{ fundamental_value }}</p>
+    <p>Next-round fundamental value per asset: {{ next_fundamental_value }}</p>
+    <p>Dividend paid at the end of this round: {{ dividend }} per asset held after trade.</p>
+    <p>Use price increments of {{ price_increment }}.</p>
+
+    {{ formfields }}
+
+    {{ next_button }}
+
+    {{ include_sibling 'instructions.html' }}
+
+{{ endblock }}

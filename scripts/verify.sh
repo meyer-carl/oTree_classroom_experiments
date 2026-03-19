@@ -19,6 +19,7 @@ python -m compileall classroom_utils.py settings.py \
   ar_risk_time_preferences as_competitiveness at_bertrand au_cournot \
   av_common_value_auction aw_traveler_dilemma ay_volunteer_dilemma \
   az_endowment_effect ba_gift_exchange bb_common_pool_resource \
+  bc_asset_market_bubble \
   payment_info survey
 
 if command -v otree >/dev/null 2>&1; then
@@ -34,6 +35,7 @@ if command -v otree >/dev/null 2>&1; then
     endowment_effect
     gift_exchange
     common_pool_resource
+    asset_market_bubble
     survey_payment
   )
   for session_name in "${sessions[@]}"; do

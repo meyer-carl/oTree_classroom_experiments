@@ -164,6 +164,15 @@ SESSION_CONFIGS = [
         knobs=["real_world_currency_per_point"],
     ),
     config(
+        name="asset_market_bubble",
+        display_name="Asset Market Bubble",
+        app_sequence=["bc_asset_market_bubble"],
+        num_demo_participants=4,
+        summary="Repeated asset market with declining fundamentals for classroom bubble and mispricing discussions.",
+        headcount=4,
+        knobs=["real_world_currency_per_point"],
+    ),
+    config(
         name="market_supply_demand",
         display_name="Market: Supply and Demand",
         app_sequence=["ak_market_supply_demand"],

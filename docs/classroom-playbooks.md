@@ -26,6 +26,12 @@
 - Keep the timer visible if the task depends on speed.
 - After the task ends, explain whether the time limit affected payoff or only participation.
 
+## Market-Learning Apps
+
+- For `bc_asset_market_bubble`, put the current fundamental value on the board before each round so students can compare price and value in real time.
+- Tell students explicitly that cash and asset holdings carry forward across rounds; otherwise they will misread later-round incentives.
+- Debrief the difference between the market-clearing price and the fundamental value, not just whether trade happened.
+
 ## Debrief Pattern
 
 - Ask what participants expected before they saw results.

@@ -1,0 +1,28 @@
+{{ block title }}Round {{ round_number }} Results{{ endblock }}
+{{ block content }}
+
+    <p>Trades executed: {{ group.quantity_traded }}</p>
+
+    {{ if group.quantity_traded }}
+        <p>Clearing price: {{ group.clearing_price }}</p>
+    {{ else }}
+        <p>No trade cleared this round.</p>
+    {{ endif }}
+
+    <p>Your action: {{ player.action }}</p>
+    <p>Your order price: {{ player.field_maybe_none('order_price') }}</p>
+    <p>Your trade status: {{ if player.traded }}Executed{{ else }}Not executed{{ endif }}</p>
+    <p>Your round dividend: {{ player.round_dividend }}</p>
+    <p>Your cash after dividends: {{ player.cash }}</p>
+    <p>Your assets after trade: {{ player.asset_units }}</p>
+    <p>Current fundamental value: {{ current_fundamental_value }}</p>
+    <p>Next-round fundamental value: {{ next_fundamental_value }}</p>
+    <p>Total terminal wealth if the market ended now: {{ total_wealth }}</p>
+
+    {{ if player.round_number == C.NUM_ROUNDS }}
+        <p>Final payoff: {{ player.payoff }}</p>
+    {{ endif }}
+
+    {{ next_button }}
+
+{{ endblock }}

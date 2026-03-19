@@ -1,0 +1,24 @@
+{{ block title }}Asset Market Bubble{{ endblock }}
+{{ block content }}
+
+    <p>
+        You start with {{ C.INITIAL_CASH }} in cash and {{ C.INITIAL_ASSETS }} assets.
+        In each round you may buy one asset, sell one asset, or hold.
+    </p>
+
+    <p>
+        Each asset pays a known dividend of {{ C.DIVIDEND_PER_ASSET }} at the end of every round.
+        The asset has terminal value {{ C.TERMINAL_VALUE }}, so its fundamental value falls over time.
+    </p>
+
+    <p>
+        Orders are cleared in a uniform-price classroom call market.
+        If the highest remaining bid is at least as large as the lowest remaining ask,
+        that trade executes at the market-clearing price.
+    </p>
+
+    {{ next_button }}
+
+    {{ include_sibling 'instructions.html' }}
+
+{{ endblock }}

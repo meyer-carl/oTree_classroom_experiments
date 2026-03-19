@@ -2,14 +2,15 @@
 
 ## First Wave
 
-The first wave should add a small set of high-value gaps rather than trying to fill every syllabus hole at once.
+The first wave has been implemented as a balanced classroom-friendly set:
 
-- `az_endowment_effect` or `az_wta_wtp`
+- `az_endowment_effect`
 - `ba_gift_exchange`
 - `bb_common_pool_resource`
-- `bc_asset_market_bubble` or `bc_continuous_double_auction`
+- `bc_asset_market_bubble`
+- loss-aversion extension in `ar_risk_time_preferences`
 
-These choices add behavioral breadth while staying close to classroom-friendly mechanics.
+These additions cover reference dependence, reciprocity, commons problems, and dynamic market mispricing without introducing hard-to-run real-time infrastructure.
 
 ## Second Wave
 

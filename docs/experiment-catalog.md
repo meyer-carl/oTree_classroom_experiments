@@ -8,6 +8,8 @@
 | `ab_ultimatum` | Ultimatum game | 2 | Supports direct and strategy-method variants. |
 | `ac_trust` | Trust game | 2 | Includes strategy-method handling for incomplete groups. |
 | `aj_public_goods` | Public goods | 3+ | Standard voluntary contribution setting. |
+| `az_endowment_effect` | Endowment effect / WTA-WTP | 2 | Seller/buyer valuations for reference dependence and ownership effects. |
+| `ba_gift_exchange` | Gift exchange | 2 | Reciprocity and principal-agent teaching case. |
 | `ay_volunteer_dilemma` | Volunteer dilemma | 3 | Good for coordination under unilateral provision. |
 
 ## Strategic Interaction
@@ -28,6 +30,8 @@
 | App | Topic | Headcount | Notes |
 | --- | --- | --- | --- |
 | `ak_market_supply_demand` | Supply and demand market | 8 | Largest standard classroom market. |
+| `bb_common_pool_resource` | Common-pool resource | 4 | Repeated commons game with stock regeneration. |
+| `bc_asset_market_bubble` | Asset market bubble | 4 | Repeated asset market with declining fundamentals and uniform-price clearing. |
 | `al_two_sided_auction` | Two-sided auction | 2+ | Simple trade/no-trade benchmark. |
 | `am_english_auction` | English auction | 4 | Ascending-price auction. |
 | `an_dutch_auction` | Dutch auction | 4 | Descending-price auction. |
@@ -42,7 +46,7 @@
 
 | App | Topic | Headcount | Notes |
 | --- | --- | --- | --- |
-| `ar_risk_time_preferences` | Risk and time preferences | 1 | Multiple price lists and payoff selection. |
+| `ar_risk_time_preferences` | Risk, time, and loss preferences | 1 | Multiple price lists and payoff selection with a loss-aversion module. |
 | `as_competitiveness` | Competitiveness | 4 | Timed task plus incentive choice. |
 
 ## Support Apps
@@ -55,5 +59,5 @@
 ## Planning Notes
 
 - The current catalog is broad on bargaining, auctions, and strategic interaction.
-- The biggest gaps are behavioral topics like endowment effect, gift exchange, self-control, ambiguity, and overconfidence.
-- The strongest additions should be chosen for teaching value, not just completeness.
+- The first-wave behavioral gaps are now covered by endowment effect, gift exchange, commons, and asset-market bubble apps.
+- The next gaps to prioritize are ambiguity, self-control, overconfidence, discrimination, and voting.
