@@ -1,0 +1,37 @@
+# oTree Classroom Experiments
+
+Instructor-first oTree package for live behavioral and experimental economics classes.
+
+This repository contains a catalog of classroom-ready experiments, shared templates, and the operational notes needed to run sessions reliably in person or online. The main design goal is repeatability: a new instructor should be able to install the project, launch a session, recover from a messy room, and export data without needing the original author present.
+
+## Start Here
+
+1. Read [docs/instructor-runbook.md](docs/instructor-runbook.md).
+2. Scan [docs/experiment-catalog.md](docs/experiment-catalog.md) to choose the right app for a class topic.
+3. Review [docs/classroom-playbooks.md](docs/classroom-playbooks.md) before a live session.
+4. Use [docs/troubleshooting.md](docs/troubleshooting.md) when something stalls.
+5. Follow [docs/data-and-export.md](docs/data-and-export.md) for exports and cleanup.
+
+## Repository Map
+
+- `settings.py`: session catalog and room setup.
+- `_rooms/`: participant label files.
+- `_templates/global/`: shared templates such as unmatched-player handling.
+- `docs/project/`: internal context pack for future maintenance.
+- `.codex/skills/`: Codex skills for repeatable audit and documentation work.
+
+## Operating Principles
+
+- Keep session names and URLs stable.
+- Prefer deterministic bot coverage for classroom-critical paths.
+- Document instructor workflow before adding more experiments.
+- Treat `db.sqlite3` as disposable local state.
+- Favor short, explicit docs that can be reused by others.
+- Check `docs/project/environment.md` before debugging imports or runtime setup.
+
+## Existing Support Apps
+
+- `survey`: demographics and cognitive reflection items.
+- `payment_info`: payout/redemption instructions.
+
+These are intentionally documented here so instructors can fold them into standard class flows rather than leaving them as orphaned helpers.
