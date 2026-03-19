@@ -10,7 +10,7 @@ class PlayerBot(Bot):
             yield Introduction
 
         if self.case == 'mutual_cooperate' and self.round_number == 1:
-            yield SubmissionMustFail(Decision, dict(cooperate='invalid'))
+            yield SubmissionMustFail(Decision, dict())
 
         if self.case == 'mutual_cooperate':
             cooperate = True

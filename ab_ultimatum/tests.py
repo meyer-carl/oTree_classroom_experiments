@@ -6,7 +6,7 @@ class PlayerBot(Bot):
     cases = ['direct_accept', 'direct_reject', 'strategy_accept', 'strategy_reject']
 
     def play_round(self):
-        self.player.session.config['use_strategy_method'] = self.case.startswith('strategy')
+        self.player.session.vars['ultimatum_force_strategy'] = self.case.startswith('strategy')
 
         yield Introduction
 
@@ -25,7 +25,7 @@ class PlayerBot(Bot):
                 min_accept = cu(40) if accepted else cu(60)
                 yield StrategyResponse, dict(min_accept=min_accept)
             else:
-                yield SubmissionMustFail(Response, dict(accepted='invalid'))
+                yield SubmissionMustFail(Response, dict())
                 yield Response, dict(accepted=accepted)
 
         expect(self.player.group.accepted, accepted)

@@ -11,7 +11,7 @@
             <br>
             Option B: {{ row.b_high }} with probability {{ row.p_high }}, {{ row.b_low }} otherwise.
         </p>
-    {{ elseif pay_task == 'time' }}
+    {{ elif pay_task == 'time' }}
         <p>Your choice: Option {{ choice }}.</p>
         <p>Option A: {{ row.sooner }} now.</p>
         <p>Option B: {{ row.later }} in {{ row.delay }}.</p>

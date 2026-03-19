@@ -6,7 +6,7 @@ class PlayerBot(Bot):
     cases = ['direct_return', 'strategy_return']
 
     def play_round(self):
-        self.player.session.config['use_strategy_method'] = self.case == 'strategy_return'
+        self.player.session.vars['trust_force_strategy'] = self.case == 'strategy_return'
 
         yield Introduction
 
@@ -20,11 +20,11 @@ class PlayerBot(Bot):
             yield Send, dict(sent_amount=sent_amount)
         else:
             if use_strategy_method(self.player):
-                invalid = {name: cu(0) for name in strategy_fields()}
+                invalid = {name: cu(0) for name in strategy_fields(self.player)}
                 invalid['strategy_send_back_10'] = C.ENDOWMENT + cu(1)
                 yield SubmissionMustFail(StrategySendBack, invalid)
                 data = {
-                    name: cu(0) for name in strategy_fields()
+                    name: cu(0) for name in strategy_fields(self.player)
                 }
                 data['strategy_send_back_10'] = cu(4)
                 yield StrategySendBack, data

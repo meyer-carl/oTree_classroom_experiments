@@ -92,6 +92,10 @@ def strategy_choice(player: Player, round_number: int):
     return getattr(player, f'strategy_take_{round_number}')
 
 
+def game_finished_before_round(player: Player):
+    return any(previous.group.taken for previous in player.in_previous_rounds())
+
+
 def random_opponent(player: Player):
     target_id = 2 if player.id_in_group == 1 else 1
     candidates = [
@@ -184,6 +188,8 @@ class Decision(Page):
     def is_displayed(player: Player):
         if use_strategy_method(player):
             return False
+        if game_finished_before_round(player):
+            return False
         g = player.group
         # show only if game still going and it's your turn
         if g.taken:
@@ -224,6 +230,8 @@ class DecisionWaitPage(WaitPage):
     def is_displayed(player: Player):
         if use_strategy_method(player):
             return False
+        if game_finished_before_round(player):
+            return False
         return not player.group.taken and player.round_number < C.NUM_ROUNDS
 
 
@@ -233,6 +241,8 @@ class ResultsWaitPage(WaitPage):
         g = player.group
         if use_strategy_method(player):
             return player.round_number == 1
+        if game_finished_before_round(player):
+            return False
         take_round = g.field_maybe_none('take_round')
         return g.taken and player.round_number == take_round or \
                not g.taken and player.round_number == C.NUM_ROUNDS
@@ -253,6 +263,8 @@ class Results(Page):
         # show in the round somebody took, or in final round if nobody did
         if use_strategy_method(player):
             return player.round_number == 1
+        if game_finished_before_round(player):
+            return False
         take_round = g.field_maybe_none('take_round')
         return (g.taken and player.round_number == take_round) or \
                (not g.taken and player.round_number == C.NUM_ROUNDS)
