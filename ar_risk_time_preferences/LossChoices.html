@@ -1,0 +1,15 @@
+{{ block title }}Loss choices{{ endblock }}
+{{ block content }}
+
+    <p>
+        These rows use a loss frame around a reference endowment of {{ C.LOSS_REFERENCE }}.
+        Choose the option you prefer in each row.
+    </p>
+
+    {{ formfields }}
+
+    {{ next_button }}
+
+    {{ include_sibling 'instructions.html' }}
+
+{{ endblock }}

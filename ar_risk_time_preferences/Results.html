@@ -11,10 +11,18 @@
             <br>
             Option B: {{ row.b_high }} with probability {{ row.p_high }}, {{ row.b_low }} otherwise.
         </p>
-    {{ else }}
+    {{ elseif pay_task == 'time' }}
         <p>Your choice: Option {{ choice }}.</p>
         <p>Option A: {{ row.sooner }} now.</p>
         <p>Option B: {{ row.later }} in {{ row.delay }}.</p>
+    {{ else }}
+        <p>Reference endowment: {{ loss_reference }}</p>
+        <p>Your choice: Option {{ choice }}.</p>
+        <p>Option A: {{ row.sure }} for sure.</p>
+        <p>
+            Option B: {{ row.gamble_high }} with probability {{ row.p_high }},
+            {{ row.gamble_low }} otherwise.
+        </p>
     {{ endif }}
 
     <p>Your payoff: {{ player.pay_amount }}</p>

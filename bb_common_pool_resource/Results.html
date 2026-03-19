@@ -1,0 +1,9 @@
+{{ block title }}Results{{ endblock }}
+{{ block content }}
+<p>Round payoff: {{ round_payoff }}</p>
+<p>Total extracted this round: {{ total_extracted }}</p>
+<p>Remaining stock after this round: {{ remaining_stock }}</p>
+<p>Projected next-round stock: {{ next_round_stock }}</p>
+<p>Total payoff so far: {{ total_payoff }}</p>
+{{ next_button }}
+{{ endblock }}

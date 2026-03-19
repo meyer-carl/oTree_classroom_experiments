@@ -15,6 +15,9 @@ class C(BaseConstants):
 
     INCLUDE_RISK = True
     INCLUDE_TIME = True
+    INCLUDE_LOSS = True
+
+    LOSS_REFERENCE = cu(50)
 
     RISK_ROWS = [
         dict(p_high=0.1, a_high=cu(20), a_low=cu(16), b_high=cu(40), b_low=cu(2)),
@@ -32,8 +35,17 @@ class C(BaseConstants):
         dict(sooner=cu(10), later=cu(20), delay='3 months'),
     ]
 
+    LOSS_ROWS = [
+        dict(p_high=0.5, sure=cu(45), gamble_high=cu(55), gamble_low=cu(35)),
+        dict(p_high=0.5, sure=cu(44), gamble_high=cu(58), gamble_low=cu(30)),
+        dict(p_high=0.5, sure=cu(43), gamble_high=cu(60), gamble_low=cu(28)),
+        dict(p_high=0.5, sure=cu(42), gamble_high=cu(62), gamble_low=cu(25)),
+        dict(p_high=0.5, sure=cu(41), gamble_high=cu(65), gamble_low=cu(20)),
+    ]
+
     NUM_RISK_ROWS = len(RISK_ROWS)
     NUM_TIME_ROWS = len(TIME_ROWS)
+    NUM_LOSS_ROWS = len(LOSS_ROWS)
 
 
 class Subsession(BaseSubsession):
@@ -86,6 +98,23 @@ for i in range(1, C.NUM_TIME_ROWS + 1):
         ),
     )
 
+for i in range(1, C.NUM_LOSS_ROWS + 1):
+    row = C.LOSS_ROWS[i - 1]
+    label = (
+        f"Row {i}: A={row['sure']} for sure; "
+        f"B=({row['gamble_high']} with probability {row['p_high']}, "
+        f"{row['gamble_low']} otherwise)"
+    )
+    setattr(
+        Player,
+        f"loss_choice_{i}",
+        models.StringField(
+            choices=[['A', 'Option A'], ['B', 'Option B']],
+            widget=widgets.RadioSelect,
+            label=label,
+        ),
+    )
+
 
 # FUNCTIONS
 def set_payoffs(group: Group):
@@ -95,6 +124,8 @@ def set_payoffs(group: Group):
             tasks += [('risk', i) for i in range(1, C.NUM_RISK_ROWS + 1)]
         if C.INCLUDE_TIME:
             tasks += [('time', i) for i in range(1, C.NUM_TIME_ROWS + 1)]
+        if C.INCLUDE_LOSS:
+            tasks += [('loss', i) for i in range(1, C.NUM_LOSS_ROWS + 1)]
 
         pay_task, pay_row = random.choice(tasks)
         p.pay_task = pay_task
@@ -109,10 +140,19 @@ def set_payoffs(group: Group):
                 payoff = row['a_high'] if draw < row['p_high'] else row['a_low']
             else:
                 payoff = row['b_high'] if draw < row['p_high'] else row['b_low']
-        else:
+        elif pay_task == 'time':
             row = C.TIME_ROWS[pay_row - 1]
             choice = getattr(p, f'time_choice_{pay_row}')
             payoff = row['sooner'] if choice == 'A' else row['later']
+        else:
+            row = C.LOSS_ROWS[pay_row - 1]
+            choice = getattr(p, f'loss_choice_{pay_row}')
+            draw = random.random()
+            p.risk_draw = draw
+            if choice == 'A':
+                payoff = row['sure']
+            else:
+                payoff = row['gamble_high'] if draw < row['p_high'] else row['gamble_low']
 
         p.pay_amount = payoff
         p.payoff = payoff
@@ -141,6 +181,15 @@ class TimeChoices(Page):
         return C.INCLUDE_TIME
 
 
+class LossChoices(Page):
+    form_model = 'player'
+    form_fields = [f'loss_choice_{i}' for i in range(1, C.NUM_LOSS_ROWS + 1)]
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return C.INCLUDE_LOSS
+
+
 class ResultsWaitPage(WaitPage):
     after_all_players_arrive = set_payoffs
 
@@ -159,14 +208,24 @@ class Results(Page):
                 choice=choice,
                 row=row,
             )
-        row = C.TIME_ROWS[pay_row - 1]
-        choice = getattr(player, f'time_choice_{pay_row}')
+        if pay_task == 'time':
+            row = C.TIME_ROWS[pay_row - 1]
+            choice = getattr(player, f'time_choice_{pay_row}')
+            return dict(
+                pay_task=pay_task,
+                pay_row=pay_row,
+                choice=choice,
+                row=row,
+            )
+        row = C.LOSS_ROWS[pay_row - 1]
+        choice = getattr(player, f'loss_choice_{pay_row}')
         return dict(
             pay_task=pay_task,
             pay_row=pay_row,
             choice=choice,
             row=row,
+            loss_reference=C.LOSS_REFERENCE,
         )
 
 
-page_sequence = [Introduction, RiskChoices, TimeChoices, ResultsWaitPage, Results]
+page_sequence = [Introduction, RiskChoices, TimeChoices, LossChoices, ResultsWaitPage, Results]
