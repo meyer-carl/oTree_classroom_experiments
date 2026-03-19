@@ -1,0 +1,16 @@
+{{ block title }}Results{{ endblock }}
+{{ block content }}
+
+    <p>Winning price: {{ group.winning_price }}</p>
+
+    {{ if player.is_winner }}
+        <p>You won the market.</p>
+    {{ else }}
+        <p>You did not win the market.</p>
+    {{ endif }}
+
+    <p>Your payoff: {{ player.payoff }}</p>
+
+    {{ next_button }}
+
+{{ endblock }}

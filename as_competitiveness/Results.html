@@ -1,0 +1,32 @@
+{{ block title }}Results{{ endblock }}
+{{ block content }}
+
+    <p>Round {{ round_number }} results.</p>
+    <p>You answered {{ player.num_correct }} correctly.</p>
+
+    {{ if round_number == 1 }}
+        <p>Piece-rate payoff: {{ player.payoff }}.</p>
+    {{ elif round_number == 2 }}
+        {{ if player.is_tournament_winner }}
+            <p>You are a tournament winner.</p>
+        {{ else }}
+            <p>You are not a tournament winner.</p>
+        {{ endif }}
+        <p>Payoff this round: {{ player.payoff }}.</p>
+    {{ else }}
+        <p>You chose: {{ player.comp_choice }}.</p>
+        {{ if player.comp_choice == 'tournament' }}
+            {{ if player.is_tournament_winner }}
+                <p>You are a tournament winner.</p>
+            {{ else }}
+                <p>You are not a tournament winner.</p>
+            {{ endif }}
+        {{ endif }}
+        <p>Payoff this round: {{ player.payoff }}.</p>
+    {{ endif }}
+
+    {{ next_button }}
+
+    {{ include_sibling 'instructions.html' }}
+
+{{ endblock }}

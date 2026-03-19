@@ -1,0 +1,18 @@
+{{ block title }}Results{{ endblock }}
+{{ block content }}
+
+<p>
+    For this round:
+    You started with an endowment of {{ C.ENDOWMENT }},
+    of which you contributed {{ player.contribution }}.
+    Your group contributed {{ group.total_contribution }},
+    resulting in an individual share of {{ group.individual_share }}.
+    Your profit is therefore {{ player.payoff }}.
+</p>
+
+<p> You just finished round {{ player.round_number }} out of {{ C.NUM_ROUNDS }} total rounds. Your total earnings so far
+    are {{ total_payoff }}. </p>
+
+{{ next_button }}
+
+{{ endblock }}

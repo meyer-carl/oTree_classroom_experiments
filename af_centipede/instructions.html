@@ -1,0 +1,22 @@
+<div class="card bg-light m-3">
+    <div class="card-body">
+        <h3>Instructions</h3>
+        <p>
+            You and another participant will be paired randomly and anonymously.<br>
+            You will alternate deciding to <strong>Stop</strong> the pot or <strong>Pass</strong> it to your opponent.
+        </p>
+        <p>
+            The pot starts at <strong>{{ C.INITIAL_POT }}</strong> and increases by
+            <strong>{{ C.POT_INCREMENT }}</strong> each time it is passed.
+        </p>
+        <ul>
+            <li>If you <strong>Stop</strong>, you take
+                <strong>{{ C.PCT_TAKER }}%</strong> of the pot, and your opponent gets
+                <strong>{{ C.PCT_OTHER }}%</strong>.
+            </li>
+            <li>If you <strong>Pass</strong>, it's your opponent's turn and the pot grows.</li>
+            <li>If no one stops by round <strong>{{ C.NUM_ROUNDS }}</strong>,
+                the pot is split equally.</li>
+        </ul>
+    </div>
+</div>

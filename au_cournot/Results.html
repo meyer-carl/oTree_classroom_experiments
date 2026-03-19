@@ -1,0 +1,11 @@
+{{ block title }}Results{{ endblock }}
+{{ block content }}
+
+    <p>Total output: {{ group.total_units }}</p>
+    <p>Unit price: {{ group.unit_price }}</p>
+    <p>The other firm produced {{ other_player_units }} units.</p>
+    <p>Your payoff: {{ player.payoff }}</p>
+
+    {{ next_button }}
+
+{{ endblock }}

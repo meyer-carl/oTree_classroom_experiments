@@ -1,0 +1,286 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+
+\title{Classroom oTree Experiments: Overview and Adjustable Parameters}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section*{General Notes}
+\begin{itemize}
+\item Session-wide payout knobs live in \texttt{settings.py} (for example
+      \texttt{real\_world\_currency\_per\_point}, \texttt{participation\_fee}).
+\item Most multi-player games require groups of size \texttt{C.PLAYERS\_PER\_GROUP}.
+      If a group is incomplete, participants see an ``Unmatched'' page and are
+      skipped to the next app. In Ultimatum, Trust, and Centipede, unmatched
+      participants are routed through the strategy-method version and matched
+      against a random counterpart for payoff calculations.
+\item Strategy-method toggle: set \texttt{use\_strategy\_method = True} in the
+      session config to force strategy method in Ultimatum, Trust, and Centipede.
+\end{itemize}
+
+\section*{Game Catalog}
+
+\subsection*{Dictator Game (\texttt{aa\_dictator})}
+One player allocates an endowment between themselves and the other player.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.NUM\_ROUNDS}
+\item \texttt{C.ENDOWMENT}
+\end{itemize}
+
+\subsection*{Ultimatum Game (\texttt{ab\_ultimatum})}
+Player 1 proposes a split; Player 2 accepts or rejects (strategy method optional).
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.NUM\_ROUNDS}
+\item \texttt{C.ENDOWMENT}
+\item \texttt{C.USE\_STRATEGY\_METHOD} or session config \texttt{use\_strategy\_method}
+\end{itemize}
+
+\subsection*{Trust Game (\texttt{ac\_trust})}
+Player 1 sends an amount that is multiplied; Player 2 returns some amount.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.NUM\_ROUNDS}
+\item \texttt{C.ENDOWMENT}
+\item \texttt{C.MULTIPLIER}
+\item \texttt{C.SEND\_INCREMENT} (strategy table step size)
+\item \texttt{C.USE\_STRATEGY\_METHOD} or session config \texttt{use\_strategy\_method}
+\end{itemize}
+
+\subsection*{Nash Demand Game (\texttt{ad\_nash\_demand})}
+Each player demands a share of a common amount; if demands exceed the total,
+both get zero.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.NUM\_ROUNDS}
+\item \texttt{C.AMOUNT\_SHARED}
+\end{itemize}
+
+\subsection*{Guess 2/3 of the Average (\texttt{ae\_guess\_two\_thirds})}
+Players guess a number; the closest to 2/3 of the average wins a jackpot.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.NUM\_ROUNDS}
+\item \texttt{C.JACKPOT}
+\item \texttt{C.GUESS\_MAX}
+\end{itemize}
+
+\subsection*{Centipede Game (\texttt{af\_centipede})}
+Players alternate between stopping to take a share of a growing pot or passing.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.NUM\_ROUNDS} (number of decision nodes)
+\item \texttt{C.INITIAL\_POT}
+\item \texttt{C.POT\_INCREMENT}
+\item \texttt{C.SHARE\_TAKER}, \texttt{C.SHARE\_OTHER}
+\item \texttt{C.USE\_STRATEGY\_METHOD} or session config \texttt{use\_strategy\_method}
+\end{itemize}
+
+\subsection*{Matching Pennies (\texttt{ag\_matching\_pennies})}
+Two players choose Heads or Tails; matcher or mismatcher wins in a random paying round.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.NUM\_ROUNDS}
+\item \texttt{C.STAKES}
+\end{itemize}
+
+\subsection*{Coordination Game (\texttt{ah\_coordination})}
+Two players try to match choices; both earn the payoff in a random paying round.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.NUM\_ROUNDS}
+\item \texttt{C.STAKES}
+\end{itemize}
+
+\subsection*{Prisoner's Dilemma, Multiple Rounds (\texttt{ai\_prisoner\_mult\_rd})}
+Repeated Prisoner's Dilemma with fixed pairs across rounds.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.NUM\_ROUNDS}
+\item \texttt{C.PAYOFF\_A}, \texttt{C.PAYOFF\_B}, \texttt{C.PAYOFF\_C}, \texttt{C.PAYOFF\_D}
+\item \texttt{C.PAY\_SINGLE\_ROUND} (if True, pay one random round)
+\end{itemize}
+
+\subsection*{Prisoner's Dilemma, One Round (\texttt{ai\_prisoner\_one\_rd})}
+One-shot Prisoner's Dilemma with a standard payoff matrix.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.NUM\_ROUNDS}
+\item \texttt{C.PAYOFF\_A}, \texttt{C.PAYOFF\_B}, \texttt{C.PAYOFF\_C}, \texttt{C.PAYOFF\_D}
+\end{itemize}
+
+\subsection*{Public Goods Game (\texttt{aj\_public\_goods})}
+Players contribute from an endowment; total contributions are multiplied and shared.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.NUM\_ROUNDS}
+\item \texttt{C.ENDOWMENT}
+\item \texttt{C.MULTIPLIER}
+\end{itemize}
+
+\subsection*{Market: Supply and Demand (\texttt{ak\_market\_supply\_demand})}
+Single-call market with buyers and sellers; trades clear at a uniform price.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.BUYER\_VALUES} and \texttt{C.SELLER\_COSTS}
+\item \texttt{C.PRICE\_MIN}, \texttt{C.PRICE\_MAX}
+\item \texttt{C.CLEARING\_PRICE\_RULE} (midpoint, bid, or ask)
+\item \texttt{C.NUM\_ROUNDS}
+\end{itemize}
+
+\subsection*{Two-Sided Auction (\texttt{al\_two\_sided\_auction})}
+One buyer and one seller submit bid and ask; trade occurs if bid \(\ge\) ask.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.VALUE\_MIN}, \texttt{C.VALUE\_MAX}
+\item \texttt{C.COST\_MIN}, \texttt{C.COST\_MAX}
+\item \texttt{C.PRICE\_MIN}, \texttt{C.PRICE\_MAX}
+\end{itemize}
+
+\subsection*{English Auction (\texttt{am\_english\_auction})}
+Ascending auction; highest drop-out price wins and pays the second-highest price.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.VALUE\_MIN}, \texttt{C.VALUE\_MAX}
+\item \texttt{C.PRICE\_MIN}, \texttt{C.PRICE\_MAX}
+\item \texttt{C.RESERVE\_PRICE}
+\item \texttt{C.PRICE\_INCREMENT}
+\end{itemize}
+
+\subsection*{Dutch Auction (\texttt{an\_dutch\_auction})}
+Descending auction; highest stop price wins and pays their stop price.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.VALUE\_MIN}, \texttt{C.VALUE\_MAX}
+\item \texttt{C.PRICE\_MIN}, \texttt{C.PRICE\_MAX}
+\item \texttt{C.RESERVE\_PRICE}
+\end{itemize}
+
+\subsection*{Sealed-Bid First-Price Auction (\texttt{ao\_sealed\_bid\_first\_price})}
+Players submit bids; highest bidder wins and pays their bid.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.VALUE\_MIN}, \texttt{C.VALUE\_MAX}
+\item \texttt{C.BID\_MIN}, \texttt{C.BID\_MAX}
+\item \texttt{C.RESERVE\_PRICE}
+\end{itemize}
+
+\subsection*{Sealed-Bid Second-Price Auction (\texttt{ap\_sealed\_bid\_second\_price})}
+Players submit bids; highest bidder wins and pays the second-highest bid.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.VALUE\_MIN}, \texttt{C.VALUE\_MAX}
+\item \texttt{C.BID\_MIN}, \texttt{C.BID\_MAX}
+\item \texttt{C.RESERVE\_PRICE}
+\end{itemize}
+
+\subsection*{eBay-Style Auction (\texttt{aq\_ebay\_auction})}
+Proxy bidding auction; highest maximum bid wins and pays the next highest plus an increment.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.VALUE\_MIN}, \texttt{C.VALUE\_MAX}
+\item \texttt{C.BID\_MIN}, \texttt{C.BID\_MAX}
+\item \texttt{C.RESERVE\_PRICE}
+\item \texttt{C.INCREMENT}
+\end{itemize}
+
+\subsection*{Risk and Time Preferences (\texttt{ar\_risk\_time\_preferences})}
+Multiple price lists for risk and time; one row is randomly selected for payment.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.INCLUDE\_RISK}, \texttt{C.INCLUDE\_TIME}
+\item \texttt{C.RISK\_ROWS} (probabilities and payoffs)
+\item \texttt{C.TIME\_ROWS} (sooner/later amounts and delays)
+\end{itemize}
+
+\subsection*{Competitiveness (Tournament Choice) (\texttt{as\_competitiveness})}
+Participants solve math problems under piece-rate and tournament incentives, then choose a scheme.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.NUM\_ROUNDS}
+\item \texttt{C.NUM\_TASKS}
+\item \texttt{C.TASK\_MIN}, \texttt{C.TASK\_MAX}
+\item \texttt{C.TIME\_LIMIT\_SECONDS}
+\item \texttt{C.PIECE\_RATE}, \texttt{C.TOURNAMENT\_RATE}
+\item \texttt{C.TOURNAMENT\_WINNERS}
+\end{itemize}
+
+\subsection*{Bertrand Competition (\texttt{at\_bertrand})}
+Two firms set prices; the lowest price wins the market.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.NUM\_ROUNDS}
+\item \texttt{C.MAXIMUM\_PRICE}
+\end{itemize}
+
+\subsection*{Cournot Competition (\texttt{au\_cournot})}
+Firms choose quantities; price falls with total output.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.NUM\_ROUNDS}
+\item \texttt{C.TOTAL\_CAPACITY} (drives \texttt{C.MAX\_UNITS\_PER\_PLAYER})
+\end{itemize}
+
+\subsection*{Common Value Auction (\texttt{av\_common\_value\_auction})}
+Players bid on a common-value item with noisy private estimates.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.BID\_MIN}, \texttt{C.BID\_MAX}
+\item \texttt{C.BID\_NOISE} (signal noise around the true value)
+\end{itemize}
+
+\subsection*{Traveler's Dilemma (\texttt{aw\_traveler\_dilemma})}
+Players make claims; lower claim is paid with a bonus to the lower claimant and a penalty to the higher.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.MIN\_AMOUNT}, \texttt{C.MAX\_AMOUNT}
+\item \texttt{C.ADJUSTMENT\_ABS}
+\end{itemize}
+
+\subsection*{Volunteer's Dilemma (\texttt{ay\_volunteer\_dilemma})}
+If at least one player volunteers, everyone benefits, but volunteers pay a cost.
+\textbf{Adjustable parameters:}
+\begin{itemize}
+\item \texttt{C.PLAYERS\_PER\_GROUP}
+\item \texttt{C.GENERAL\_BENEFIT}
+\item \texttt{C.VOLUNTEER\_COST}
+\end{itemize}
+
+\section*{Acknowledgments}
+\begin{itemize}
+\item Several games are adapted from the oTree lite example apps
+      (\url{https://github.com/oTree-org/oTree/tree/lite}).
+\item Trust Game: Berg, Dickhaut, and McCabe (1995).
+\item Competitiveness task inspired by Niederle and Vesterlund (2007).
+\item Keynesian beauty contest / 2/3 guessing game (Keynes, 1936).
+\item Second-price auction (Vickrey, 1961).
+\end{itemize}
+
+\end{document}

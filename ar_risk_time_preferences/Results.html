@@ -1,0 +1,26 @@
+{{ block title }}Results{{ endblock }}
+{{ block content }}
+
+    <p>Selected task: {{ pay_task }}, row {{ pay_row }}.</p>
+
+    {{ if pay_task == 'risk' }}
+        <p>Your choice: Option {{ choice }}.</p>
+        <p>Random draw: {{ player.risk_draw }}</p>
+        <p>
+            Option A: {{ row.a_high }} with probability {{ row.p_high }}, {{ row.a_low }} otherwise.
+            <br>
+            Option B: {{ row.b_high }} with probability {{ row.p_high }}, {{ row.b_low }} otherwise.
+        </p>
+    {{ else }}
+        <p>Your choice: Option {{ choice }}.</p>
+        <p>Option A: {{ row.sooner }} now.</p>
+        <p>Option B: {{ row.later }} in {{ row.delay }}.</p>
+    {{ endif }}
+
+    <p>Your payoff: {{ player.pay_amount }}</p>
+
+    {{ next_button }}
+
+    {{ include_sibling 'instructions.html' }}
+
+{{ endblock }}

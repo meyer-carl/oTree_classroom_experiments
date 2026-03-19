@@ -1,0 +1,17 @@
+<div class="card bg-light m-3">
+    <div class="card-body">
+        <h3>Instructions</h3>
+
+        <p>
+            You and another traveler bought identical antiques that were damaged.
+            Both of you independently claim compensation between {{ C.MIN_AMOUNT }} and {{ C.MAX_AMOUNT }}.
+        </p>
+
+        <ul>
+            <li>If claims match, both receive that amount.</li>
+            <li>If claims differ, both receive the lower claim.</li>
+            <li>The lower claimant receives a bonus of {{ C.ADJUSTMENT_ABS }}.</li>
+            <li>The higher claimant receives a penalty of {{ C.ADJUSTMENT_ABS }}.</li>
+        </ul>
+    </div>
+</div>

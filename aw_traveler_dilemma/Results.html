@@ -1,0 +1,12 @@
+{{ block title }}Results{{ endblock }}
+{{ block content }}
+
+    <p>Your claim: {{ player.claim }}</p>
+    <p>Other player's claim: {{ other_player_claim }}</p>
+    <p>Lower claim: {{ group.lower_claim }}</p>
+    <p>Adjustment: {{ player.adjustment }}</p>
+    <p>Your payoff: {{ player.payoff }}</p>
+
+    {{ next_button }}
+
+{{ endblock }}

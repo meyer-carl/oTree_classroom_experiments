@@ -1,0 +1,30 @@
+{{ block title }}Final results{{ endblock }}
+{{ block content }}
+
+<table class="table">
+    <tr>
+        <th>Round</th>
+        <th>Your choice</th>
+        <th>Coordinated?</th>
+    </tr>
+    {{ for p in player_in_all_rounds }}
+    <tr>
+        <td>{{ p.round_number }}</td>
+        <td>{{ p.penny_side }}</td>
+        <td>
+            {{ if p.coordinated }}
+            Yes
+            {{ else }}
+            No
+            {{ endif }}
+        </td>
+    </tr>
+    {{ endfor }}
+</table>
+
+<p>
+    The paying round was {{ paying_round }}.<br>
+    Your total payoff is therefore <strong>{{ total_payoff }}</strong>.
+</p>
+
+{{ endblock }}

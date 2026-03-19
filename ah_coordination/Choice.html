@@ -1,0 +1,42 @@
+{{ block title }}Round {{ subsession.round_number }} of {{ C.NUM_ROUNDS }}{{ endblock }}
+{{ block content }}
+
+<h4>Instructions</h4>
+<p>
+    This is a <strong>coordination game</strong>. You and your partner each choose
+    <strong>Heads</strong> or <strong>Tails</strong>. On a randomly selected paying round,
+    if your choices match, <strong>both</strong> of you earn {{ C.STAKES }}. If they do not match,
+    you both earn nothing.
+</p>
+
+<p>
+    A round will be randomly chosen for payment.
+</p>
+
+<h4>Round history</h4>
+<table class="table">
+    <tr>
+        <th>Round</th>
+        <th>Your choice</th>
+        <th>Coordinated?</th>
+    </tr>
+    {{ for p in player_in_previous_rounds }}
+    <tr>
+        <td>{{ p.round_number }}</td>
+        <td>{{ p.penny_side }}</td>
+        <td>
+            {{ if p.coordinated }}
+            Yes
+            {{ else }}
+            No
+            {{ endif }}
+        </td>
+    </tr>
+    {{ endfor }}
+</table>
+
+{{ formfields }}
+
+{{ next_button }}
+
+{{ endblock }}

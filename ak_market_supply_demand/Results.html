@@ -1,0 +1,35 @@
+{{ block title }}Results{{ endblock }}
+{{ block content }}
+
+    <p>Clearing price: {{ group.clearing_price }}</p>
+    <p>Number of trades: {{ group.num_trades }}</p>
+
+    {{ if player.traded }}
+        <p>You traded at price {{ player.trade_price }}.</p>
+    {{ else }}
+        <p>You did not trade.</p>
+    {{ endif }}
+
+    <p>Your payoff: {{ player.payoff }}</p>
+
+    <hr>
+
+    <h4>Buyer bids (high to low)</h4>
+    <ul>
+        {{ for b in buyers }}
+            <li>Buyer {{ b.id_in_group }} bid {{ b.order_price }} (value {{ b.private_value }})</li>
+        {{ endfor }}
+    </ul>
+
+    <h4>Seller asks (low to high)</h4>
+    <ul>
+        {{ for s in sellers }}
+            <li>Seller {{ s.id_in_group }} asked {{ s.order_price }} (cost {{ s.private_cost }})</li>
+        {{ endfor }}
+    </ul>
+
+    {{ next_button }}
+
+    {{ include_sibling 'instructions.html' }}
+
+{{ endblock }}

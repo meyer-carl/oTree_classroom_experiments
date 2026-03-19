@@ -1,0 +1,15 @@
+{{ block title }}Minimum Acceptable Offer{{ endblock }}
+{{ block content }}
+
+    <p>
+        Please indicate the smallest offer you would accept.
+        You will accept any offer that is at least this amount.
+    </p>
+
+    {{ formfields }}
+
+    {{ next_button }}
+
+    {{ include_sibling 'instructions.html' }}
+
+{{ endblock }}

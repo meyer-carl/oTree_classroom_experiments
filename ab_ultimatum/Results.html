@@ -1,0 +1,23 @@
+{{ block title }}Results{{ endblock }}
+{{ block content }}
+<p>
+    {{ if player.id_in_group == 1 }}
+    You offered <strong>{{ offer }}</strong> to Participant 2.<br>
+    {{ if accepted }}
+    Participant 2 accepted your offer, so you earn <strong>{{ kept }}</strong>.
+    {{ else }}
+    Participant 2 rejected your offer, so you earn <strong>0</strong>.
+    {{ endif }}
+    {{ else }}
+    Participant 1 offered you <strong>{{ offer }}</strong>.<br>
+    {{ if accepted }}
+    You accepted the offer, so you earn <strong>{{ offer }}</strong>.
+    {{ else }}
+    You rejected the offer, so you earn <strong>0</strong>.
+    {{ endif }}
+    {{ endif }}
+</p>
+
+{{ next_button }}
+{{ include_sibling 'instructions.html' }}
+{{ endblock }}

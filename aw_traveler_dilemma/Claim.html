@@ -1,0 +1,11 @@
+{{ block title }}Claim{{ endblock }}
+{{ block content }}
+
+    <p>Enter a claim between {{ C.MIN_AMOUNT }} and {{ C.MAX_AMOUNT }}.</p>
+
+    {{ formfields }}
+    {{ next_button }}
+
+    {{ include_sibling 'instructions.html' }}
+
+{{ endblock }}

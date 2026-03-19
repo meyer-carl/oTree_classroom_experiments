@@ -1,0 +1,14 @@
+{{ block title }}Strategy Decisions{{ endblock }}
+{{ block content }}
+
+    <p>
+        Please indicate whether you would stop or pass at each decision node where it would be your turn.
+    </p>
+
+    {{ formfields }}
+
+    {{ next_button }}
+
+    {{ include_sibling 'instructions.html' }}
+
+{{ endblock }}

@@ -1,0 +1,17 @@
+{{ block title }}Order{{ endblock }}
+{{ block content }}
+
+    <p>You are a <strong>{{ role }}</strong>.</p>
+
+    {{ if player.is_buyer }}
+        <p>Your private value is {{ player.private_value }}.</p>
+        <p>Enter your bid (must be at most your value).</p>
+    {{ else }}
+        <p>Your private cost is {{ player.private_cost }}.</p>
+        <p>Enter your ask (must be at least your cost).</p>
+    {{ endif }}
+
+    {{ formfields }}
+    {{ next_button }}
+
+{{ endblock }}

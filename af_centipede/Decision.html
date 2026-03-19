@@ -1,0 +1,8 @@
+{{ block title }}Decision – Round {{ player.round_number }}{{ endblock }}
+{{ block content }}
+<p>The pot is currently <strong>{{ pot }}</strong>.</p>
+<p>It's your turn; would you like to <strong>Stop</strong> or <strong>Pass</strong>?</p>
+{{ formfields }}
+{{ next_button }}
+{{ include_sibling 'instructions.html' }}
+{{ endblock }}

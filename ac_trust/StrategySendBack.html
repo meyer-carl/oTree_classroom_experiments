@@ -1,0 +1,15 @@
+{{ block title }}Strategy: Send Back Decisions{{ endblock }}
+{{ block content }}
+
+    <p>
+        Please indicate how much you would send back for each possible amount sent by Player A.
+        The amounts listed are based on the increment of {{ C.SEND_INCREMENT }}.
+    </p>
+
+    {{ formfields }}
+
+    {{ next_button }}
+
+    {{ include_sibling 'instructions.html' }}
+
+{{ endblock }}

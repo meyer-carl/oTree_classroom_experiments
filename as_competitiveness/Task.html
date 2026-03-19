@@ -1,0 +1,15 @@
+{{ block title }}Task Round {{ player.round_number }}{{ endblock }}
+{{ block content }}
+
+    <p>Solve the problems below, then enter your answers.</p>
+
+    <ol>
+        {{ for t in tasks }}
+            <li>{{ t.a }} + {{ t.b }} = ___ (Answer {{ t.index }})</li>
+        {{ endfor }}
+    </ol>
+
+    {{ formfields }}
+    {{ next_button }}
+
+{{ endblock }}

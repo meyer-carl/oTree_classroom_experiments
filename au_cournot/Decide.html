@@ -1,0 +1,11 @@
+{{ block title }}Production{{ endblock }}
+{{ block content }}
+
+    <p>Choose a quantity from 0 to {{ C.MAX_UNITS_PER_PLAYER }}.</p>
+
+    {{ formfields }}
+    {{ next_button }}
+
+    {{ include_sibling 'instructions.html' }}
+
+{{ endblock }}

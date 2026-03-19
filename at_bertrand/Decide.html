@@ -1,0 +1,11 @@
+{{ block title }}Set Your Price{{ endblock }}
+{{ block content }}
+
+    <p>Choose a price between 0 and {{ C.MAXIMUM_PRICE }}.</p>
+
+    {{ formfields }}
+    {{ next_button }}
+
+    {{ include_sibling 'instructions.html' }}
+
+{{ endblock }}

@@ -1,0 +1,13 @@
+{{ block title }}Your Response{{ endblock }}
+{{ block content }}
+<p>
+    You are <strong>Participant 2</strong> (the responder).<br>
+    Participant 1 has offered you <strong>{{ group.offer }}</strong> out of {{ C.ENDOWMENT }}.
+</p>
+
+{{ formfields }}
+
+{{ next_button }}
+
+{{ include_sibling 'instructions.html' }}
+{{ endblock }}
