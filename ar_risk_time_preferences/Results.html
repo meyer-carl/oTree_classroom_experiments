@@ -15,7 +15,7 @@
         <p>Your choice: Option {{ choice }}.</p>
         <p>Option A: {{ row.sooner }} now.</p>
         <p>Option B: {{ row.later }} in {{ row.delay }}.</p>
-    {{ else }}
+    {{ elif pay_task == 'loss' }}
         <p>Reference endowment: {{ loss_reference }}</p>
         <p>Your choice: Option {{ choice }}.</p>
         <p>Option A: {{ row.sure }} for sure.</p>
@@ -23,6 +23,20 @@
             Option B: {{ row.gamble_high }} with probability {{ row.p_high }},
             {{ row.gamble_low }} otherwise.
         </p>
+    {{ else }}
+        <p>Your choice: Option {{ choice }}.</p>
+        <p>Random draw: {{ player.risk_draw }}</p>
+        <p>
+            Option A: {{ row.known_high }} with probability {{ row.known_p_high }},
+            {{ row.known_low }} otherwise.
+        </p>
+        <p>
+            Option B: {{ row.ambiguous_high }} with an unknown probability,
+            {{ row.ambiguous_low }} otherwise.
+        </p>
+        {{ if choice == 'B' }}
+            <p>Realized hidden winning probability for Option B: {{ ambiguity_realized_p_high }}</p>
+        {{ endif }}
     {{ endif }}
 
     <p>Your payoff: {{ player.pay_amount }}</p>

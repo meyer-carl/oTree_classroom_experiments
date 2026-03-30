@@ -1,0 +1,15 @@
+{{ block title }}Ambiguity choices{{ endblock }}
+{{ block content }}
+
+    <p>
+        In these rows, Option A uses a known winning probability.
+        Option B uses the same prizes, but the winning probability is unknown when you choose.
+    </p>
+
+    {{ formfields }}
+
+    {{ next_button }}
+
+    {{ include_sibling 'instructions.html' }}
+
+{{ endblock }}

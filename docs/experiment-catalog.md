@@ -46,7 +46,7 @@
 
 | App | Topic | Headcount | Notes |
 | --- | --- | --- | --- |
-| `ar_risk_time_preferences` | Risk, time, and loss preferences | 1 | Multiple price lists and payoff selection with a loss-aversion module. |
+| `ar_risk_time_preferences` | Risk, time, loss, and ambiguity preferences | 1 | Multiple price lists with a backward-compatible ambiguity-enabled preset. |
 | `as_competitiveness` | Competitiveness | 4 | Timed task plus incentive choice. |
 
 ## Support Apps
@@ -60,4 +60,4 @@
 
 - The current catalog is broad on bargaining, auctions, and strategic interaction.
 - The first-wave behavioral gaps are now covered by endowment effect, gift exchange, commons, and asset-market bubble apps.
-- The next gaps to prioritize are ambiguity, self-control, overconfidence, discrimination, and voting.
+- The next gaps to prioritize are self-control, overconfidence, discrimination, and voting.

@@ -6,7 +6,7 @@
 - Gift exchange or reciprocal labor-market task.
 - Common-pool resource extraction.
 - Asset market bubble or continuous double auction.
-- Ambiguity aversion or loss-aversion module on top of the existing risk/time preference app.
+- Self-control or commitment module layered onto the existing preference elicitation workflow.
 
 ## Later Ideas
 

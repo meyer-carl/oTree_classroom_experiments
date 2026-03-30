@@ -31,6 +31,7 @@ if command -v otree >/dev/null 2>&1; then
     market_supply_demand
     prisoner_mult_rd
     risk_time_preferences
+    risk_time_preferences_ambiguity
     competitiveness
     endowment_effect
     gift_exchange

@@ -33,6 +33,6 @@ This repository contains a catalog of classroom-ready experiments, shared templa
 
 - `survey`: demographics and cognitive reflection items.
 - `payment_info`: payout/redemption instructions.
-- First-wave extensions now include `az_endowment_effect`, `ba_gift_exchange`, `bb_common_pool_resource`, `bc_asset_market_bubble`, and the loss-aversion module in `ar_risk_time_preferences`.
+- First-wave extensions now include `az_endowment_effect`, `ba_gift_exchange`, `bb_common_pool_resource`, `bc_asset_market_bubble`, and the loss-aversion and ambiguity-aversion modules in `ar_risk_time_preferences`.
 
 These are intentionally documented here so instructors can fold them into standard class flows rather than leaving them as orphaned helpers.
