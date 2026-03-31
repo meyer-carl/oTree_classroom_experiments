@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 from otree.api import Bot, SubmissionMustFail, expect
 from . import *
 
@@ -39,3 +41,52 @@ class PlayerBot(Bot):
 
         expect(self.player.payoff, expected)
         yield Results
+
+
+class DummyGroup:
+    def __init__(self, *, players, session, sent_amount=None, sent_back_amount=None):
+        self._players = players
+        self.session = session
+        self.sent_amount = sent_amount
+        self.sent_back_amount = sent_back_amount
+
+    def get_players(self):
+        return self._players
+
+
+class DummySubsession:
+    def __init__(self, players):
+        self._players = players
+
+    def get_players(self):
+        return self._players
+
+
+def test_set_payoffs_handles_unmatched_second_mover():
+    session = SimpleNamespace(config={}, vars={'trust_force_strategy': True})
+    first_mover = SimpleNamespace(
+        id_in_group=1,
+        group=None,
+        session=session,
+        subsession=None,
+        payoff=None,
+    )
+    second_mover = SimpleNamespace(
+        id_in_group=2,
+        group=None,
+        session=session,
+        subsession=None,
+        payoff=None,
+        strategy_send_back_40=cu(25),
+    )
+    first_mover.group = DummyGroup(players=[first_mover], session=session, sent_amount=cu(40))
+    second_mover.group = DummyGroup(players=[second_mover], session=session)
+    subsession = DummySubsession([first_mover, second_mover])
+    first_mover.subsession = subsession
+    second_mover.subsession = subsession
+
+    set_payoffs(second_mover.group)
+
+    assert second_mover.group.sent_amount == cu(40)
+    assert second_mover.group.sent_back_amount == cu(25)
+    assert second_mover.payoff == cu(95)

@@ -1,9 +1,12 @@
 from otree.api import Bot, SubmissionMustFail, expect
+import sys
 from . import *
+
+APP = sys.modules[__package__]
 
 
 class PlayerBot(Bot):
-    cases = ['mutual_cooperate', 'mutual_defect', 'alternating']
+    cases = ['mutual_cooperate', 'mutual_defect', 'alternating', 'single_paying_round']
 
     def play_round(self):
         if self.round_number == 1:
@@ -12,7 +15,7 @@ class PlayerBot(Bot):
         if self.case == 'mutual_cooperate' and self.round_number == 1:
             yield SubmissionMustFail(Decision, dict())
 
-        if self.case == 'mutual_cooperate':
+        if self.case in ['mutual_cooperate', 'single_paying_round']:
             cooperate = True
         elif self.case == 'mutual_defect':
             cooperate = False
@@ -24,8 +27,17 @@ class PlayerBot(Bot):
 
         yield Decision, dict(cooperate=cooperate)
 
+        if self.case == 'single_paying_round':
+            original = APP.pd_pay_single_round
+            APP.pd_pay_single_round = lambda context: True
+            self.player.session.vars['paying_round'] = 1
+            set_payoffs(self.player.group)
+            APP.pd_pay_single_round = original
+
         if self.case == 'mutual_cooperate':
             expected_round = C.PAYOFF_B
+        elif self.case == 'single_paying_round':
+            expected_round = C.PAYOFF_B if self.round_number == 1 else cu(0)
         elif self.case == 'mutual_defect':
             expected_round = C.PAYOFF_C
         else:
@@ -37,6 +49,8 @@ class PlayerBot(Bot):
             total = sum(p.payoff for p in self.player.in_all_rounds())
             if self.case == 'mutual_cooperate':
                 expect(total, C.NUM_ROUNDS * C.PAYOFF_B)
+            elif self.case == 'single_paying_round':
+                expect(total, C.PAYOFF_B)
             elif self.case == 'mutual_defect':
                 expect(total, C.NUM_ROUNDS * C.PAYOFF_C)
             else:

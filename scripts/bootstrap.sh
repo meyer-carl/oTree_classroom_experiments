@@ -25,6 +25,6 @@ Bootstrap complete.
 Activate the environment with:
   source "$VENV_DIR/bin/activate"
 
-Then verify the install with:
+The verification scripts use the project-local virtualenv directly. Verify the install with:
   ./scripts/verify.sh
 EOF

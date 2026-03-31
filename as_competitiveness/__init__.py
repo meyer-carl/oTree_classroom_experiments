@@ -109,7 +109,10 @@ def competitiveness_tournament_rate(context):
 
 
 def competitiveness_tournament_winners(context):
-    return max(1, int_config_value(context, 'competitiveness_tournament_winners', C.TOURNAMENT_WINNERS))
+    configured = int_config_value(
+        context, 'competitiveness_tournament_winners', C.TOURNAMENT_WINNERS
+    )
+    return max(1, min(C.PLAYERS_PER_GROUP, configured))
 
 
 # FUNCTIONS
@@ -146,10 +149,8 @@ def _count_correct(player: Player):
 def _tournament_winners(players, top_n):
     if not players:
         return []
-    scores = sorted([p.num_correct for p in players], reverse=True)
-    cutoff_index = min(top_n, len(scores)) - 1
-    cutoff_score = scores[cutoff_index]
-    return [p for p in players if p.num_correct >= cutoff_score]
+    ordered_players = sorted(players, key=lambda p: (-p.num_correct, p.id_in_group))
+    return ordered_players[: min(top_n, len(ordered_players))]
 
 
 def set_round_results(group: Group):

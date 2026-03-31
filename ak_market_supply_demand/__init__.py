@@ -51,7 +51,6 @@ class Player(BasePlayer):
     private_cost = models.CurrencyField(initial=cu(0))
     order_price = models.CurrencyField(
         min=C.PRICE_MIN,
-        max=C.PRICE_MAX,
         label="Your order price",
         doc="""Bid (buyers) or ask (sellers) price""",
     )
@@ -77,6 +76,11 @@ def required_group_size(context):
 def clearing_price_rule(context):
     rule = session_config_value(context, 'clearing_price_rule', C.CLEARING_PRICE_RULE)
     return rule if rule in {'midpoint', 'bid', 'ask'} else C.CLEARING_PRICE_RULE
+
+
+def market_price_cap(context):
+    configured_prices = buyer_values(context) + seller_costs(context)
+    return max(configured_prices) if configured_prices else C.PRICE_MAX
 
 
 # FUNCTIONS
@@ -194,11 +198,13 @@ class Order(Page):
 
     @staticmethod
     def vars_for_template(player: Player):
-        return dict(role=player.role())
+        return dict(role=player.role(), price_cap=market_price_cap(player))
 
     @staticmethod
     def error_message(player: Player, values):
         price = values['order_price']
+        if price < C.PRICE_MIN or price > market_price_cap(player):
+            return f"Order price must be between {C.PRICE_MIN} and {market_price_cap(player)} for this session."
         if player.is_buyer and price > player.private_value:
             return 'Your bid cannot exceed your private value.'
         if not player.is_buyer and price < player.private_cost:

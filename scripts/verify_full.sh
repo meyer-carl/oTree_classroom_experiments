@@ -11,4 +11,4 @@ if [[ ! -x "$PROJECT_PYTHON" ]]; then
 fi
 
 ./scripts/run_preflight.sh
-"$PROJECT_PYTHON" scripts/run_session_suite.py smoke
+"$PROJECT_PYTHON" scripts/run_session_suite.py full

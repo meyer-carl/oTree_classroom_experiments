@@ -1,7 +1,7 @@
 from otree.api import *
 import random
 
-from classroom_utils import bool_config_value, currency_config_value, int_config_value
+from classroom_utils import bool_config_value, int_config_value
 
 doc = """
 Trust Game: This is a standard 2-player trust game where the amount sent by player 1 gets
@@ -68,7 +68,7 @@ for amount in C.STRATEGY_SEND_AMOUNTS:
 
 
 def trust_endowment(context):
-    return currency_config_value(context, 'trust_endowment', C.ENDOWMENT)
+    return C.ENDOWMENT
 
 
 def trust_multiplier(context):
@@ -120,6 +120,13 @@ def random_second_mover(player: Player):
     return random.choice(candidates) if candidates else None
 
 
+def random_first_mover(player: Player):
+    candidates = [
+        p for p in player.subsession.get_players() if p.id_in_group == 1 and p != player
+    ]
+    return random.choice(candidates) if candidates else None
+
+
 # FUNCTIONS
 def sent_back_amount_max(group: Group):
     # Function to check that the amount P2 wants to send back doesn't exceed
@@ -134,16 +141,26 @@ def set_payoffs(group: Group):
     players = group.get_players()
     if len(players) < C.PLAYERS_PER_GROUP:
         lone_player = players[0]
-        p2 = random_second_mover(lone_player)
-        if p2 and use_strategy_method(p2):
-            field = f'strategy_send_back_{int(group.sent_amount)}'
-            group.sent_back_amount = getattr(p2, field, cu(0)) or cu(0)
-        elif p2:
-            group.sent_back_amount = p2.group.sent_back_amount or cu(0)
+        if lone_player.id_in_group == 1:
+            group.sent_amount = group.sent_amount or cu(0)
+            p2 = random_second_mover(lone_player)
+            if p2 and use_strategy_method(p2):
+                field = f'strategy_send_back_{int(group.sent_amount)}'
+                group.sent_back_amount = getattr(p2, field, cu(0)) or cu(0)
+            elif p2:
+                group.sent_back_amount = p2.group.sent_back_amount or cu(0)
+            else:
+                group.sent_back_amount = cu(0)
+            lone_player.payoff = endowment - group.sent_amount + group.sent_back_amount
         else:
-            group.sent_back_amount = cu(0)
-
-        lone_player.payoff = endowment - group.sent_amount + group.sent_back_amount
+            p1 = random_first_mover(lone_player)
+            group.sent_amount = p1.group.sent_amount if p1 and p1.group.sent_amount is not None else cu(0)
+            if use_strategy_method(lone_player):
+                field = f'strategy_send_back_{int(group.sent_amount)}'
+                group.sent_back_amount = getattr(lone_player, field, cu(0)) or cu(0)
+            else:
+                group.sent_back_amount = group.sent_back_amount or cu(0)
+            lone_player.payoff = group.sent_amount * multiplier - group.sent_back_amount
         return
 
     p1 = group.get_player_by_id(1)  # Get Player 1

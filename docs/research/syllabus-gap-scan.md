@@ -26,25 +26,28 @@
 
 ## Gaps In The Current Bundle
 
-The current repository is strongest in bargaining, auctions, and basic strategic interaction. The clearest missing areas are:
+The current bundle already covers social preferences, bargaining, trust/public goods, auctions, and several market exercises, and the original first-wave behavioral additions from this scan are now in place. The clearest remaining gaps are:
 
-- Endowment effect and willingness-to-pay/willingness-to-accept.
-- Gift exchange and labor reciprocity.
-- Common-pool resources and externalities.
-- Dynamic market learning and bubbles.
 - Self-control, commitment, ambiguity aversion, and loss aversion.
 - Voting, public choice, and median-voter style exercises.
 - Matching and market design.
 - Discrimination and overconfidence.
 
-## Recommended First-Wave Additions
+## First-Wave Additions Now Implemented
 
-1. `az_endowment_effect` or `az_wta_wtp`
+1. `az_endowment_effect`
 2. `ba_gift_exchange`
 3. `bb_common_pool_resource`
-4. `bc_asset_market_bubble` or `bc_continuous_double_auction`
+4. `bc_asset_market_bubble`
 
-These fill the largest teaching gaps while keeping the mechanics classroom-friendly.
+These additions closed the original first-wave teaching gaps while keeping the mechanics classroom-friendly.
+
+## Current Recommendation Priorities
+
+1. A voting or public-choice app.
+2. A matching or market-design app.
+3. An overconfidence or discrimination module.
+4. A self-control or commitment exercise that extends the current individual-preference coverage.
 
 ## Inference Notes
 

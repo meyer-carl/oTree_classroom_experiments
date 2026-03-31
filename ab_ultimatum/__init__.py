@@ -1,7 +1,7 @@
 from otree.api import *
 import random
 
-from classroom_utils import bool_config_value, currency_config_value
+from classroom_utils import bool_config_value
 
 doc = """
 Ultimatum Game: One player decides how to divide a certain amount between themself and the other
@@ -55,7 +55,7 @@ class Player(BasePlayer):
 
 
 def ultimatum_endowment(context):
-    return currency_config_value(context, 'ultimatum_endowment', C.ENDOWMENT)
+    return C.ENDOWMENT
 
 
 def creating_session(subsession: Subsession):
@@ -84,6 +84,13 @@ def random_responder(player: Player):
     return random.choice(candidates) if candidates else None
 
 
+def random_proposer(player: Player):
+    candidates = [
+        p for p in player.subsession.get_players() if p.id_in_group == 1 and p != player
+    ]
+    return random.choice(candidates) if candidates else None
+
+
 def responder_accepts_offer(responder: Player, offer):
     if use_strategy_method(responder) and responder.min_accept is not None:
         return offer >= responder.min_accept
@@ -96,13 +103,20 @@ def set_payoffs(group: Group):
     players = group.get_players()
     if len(players) < C.PLAYERS_PER_GROUP:
         lone_player = players[0]
-        responder = random_responder(lone_player)
-        accepted = responder_accepts_offer(responder, group.offer) if responder else False
+        if lone_player.id_in_group == 1:
+            offer = group.offer or cu(0)
+            responder = random_responder(lone_player)
+        else:
+            proposer = random_proposer(lone_player)
+            offer = proposer.group.offer if proposer and proposer.group.offer is not None else cu(0)
+            group.offer = offer
+            responder = lone_player if proposer else None
+        accepted = responder_accepts_offer(responder, offer) if responder else False
         group.accepted = accepted
         if lone_player.id_in_group == 1:
-            lone_player.payoff = endowment - group.offer if accepted else cu(0)
+            lone_player.payoff = endowment - offer if accepted else cu(0)
         else:
-            lone_player.payoff = group.offer if accepted else cu(0)
+            lone_player.payoff = offer if accepted else cu(0)
         return
 
     p1 = group.get_player_by_id(1)  # Get the P1 (Player 1)

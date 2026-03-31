@@ -5,10 +5,10 @@
 
     {{ if player.is_buyer }}
         <p>Your private value is {{ player.private_value }}.</p>
-        <p>Enter your bid (must be at most your value).</p>
+        <p>Enter your bid (must be at most your value and no more than {{ price_cap }} for this session).</p>
     {{ else }}
         <p>Your private cost is {{ player.private_cost }}.</p>
-        <p>Enter your ask (must be at least your cost).</p>
+        <p>Enter your ask (must be at least your cost and no more than {{ price_cap }} for this session).</p>
     {{ endif }}
 
     {{ formfields }}

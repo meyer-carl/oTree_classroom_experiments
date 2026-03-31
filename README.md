@@ -6,11 +6,14 @@ This repository contains a catalog of classroom-ready experiments, shared templa
 
 ## Start Here
 
-1. Read [docs/instructor-runbook.md](docs/instructor-runbook.md).
-2. Scan [docs/experiment-catalog.md](docs/experiment-catalog.md) to choose the right app for a class topic.
-3. Review [docs/classroom-playbooks.md](docs/classroom-playbooks.md) before a live session.
-4. Use [docs/troubleshooting.md](docs/troubleshooting.md) when something stalls.
-5. Follow [docs/data-and-export.md](docs/data-and-export.md) for exports and cleanup.
+1. Send new instructors to [INSTRUCTOR_QUICKSTART.md](INSTRUCTOR_QUICKSTART.md) first.
+2. Run `./scripts/bootstrap.sh` once to create the project-local `.venv`.
+3. Run `./scripts/verify.sh` to confirm the repo-local environment works.
+4. Read [docs/instructor-runbook.md](docs/instructor-runbook.md).
+5. Scan [docs/experiment-catalog.md](docs/experiment-catalog.md) to choose the right app for a class topic.
+6. Review [docs/classroom-playbooks.md](docs/classroom-playbooks.md) before a live session.
+7. Use [docs/troubleshooting.md](docs/troubleshooting.md) when something stalls.
+8. Follow [docs/data-and-export.md](docs/data-and-export.md) for exports and cleanup.
 
 ## Repository Map
 

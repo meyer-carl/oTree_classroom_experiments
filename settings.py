@@ -22,7 +22,10 @@ def config(name, display_name, app_sequence, num_demo_participants, summary, hea
     )
 
 
-def classroom_bundle(name, display_name, experiment_app, num_demo_participants, headcount, summary, knobs=None):
+def classroom_bundle(name, display_name, experiment_app, num_demo_participants, headcount, summary, knobs=None, notes=None):
+    bundle_notes = "Includes the reusable survey and payment_info follow-up apps."
+    if notes:
+        bundle_notes = f"{notes} {bundle_notes}"
     return config(
         name=name,
         display_name=display_name,
@@ -31,7 +34,7 @@ def classroom_bundle(name, display_name, experiment_app, num_demo_participants, 
         summary=summary,
         headcount=headcount,
         knobs=(knobs or []) + ["participant labels for payment redemption"],
-        notes="Includes the reusable survey and payment_info follow-up apps.",
+        notes=bundle_notes,
     )
 
 
@@ -61,7 +64,8 @@ SESSION_CONFIGS = [
         num_demo_participants=2,
         summary="Two-player bargaining with optional strategy-method fallback for odd headcounts.",
         headcount=2,
-        knobs=["ultimatum_endowment", "use_strategy_method"],
+        knobs=["use_strategy_method"],
+        notes="Endowment is fixed at 100 points in this app.",
     ),
     config(
         name="trust",
@@ -70,7 +74,8 @@ SESSION_CONFIGS = [
         num_demo_participants=2,
         summary="Trust game with optional strategy-method fallback and configurable multiplier.",
         headcount=2,
-        knobs=["trust_endowment", "trust_multiplier", "trust_send_increment", "use_strategy_method"],
+        knobs=["trust_multiplier", "trust_send_increment", "use_strategy_method"],
+        notes="Endowment is fixed at 100 points in this app; trust_send_increment applies within that fixed endowment.",
     ),
     config(
         name="nash_demand",
@@ -180,6 +185,7 @@ SESSION_CONFIGS = [
         summary="Single-call market with configurable buyer values, seller costs, and clearing-price rule.",
         headcount=8,
         knobs=["buyer_values", "seller_costs", "clearing_price_rule"],
+        notes="Order-price validation expands to the largest configured buyer value or seller cost.",
     ),
     config(
         name="two_sided_auction",
@@ -276,7 +282,7 @@ SESSION_CONFIGS = [
             "competitiveness_tournament_rate",
             "competitiveness_tournament_winners",
         ],
-        notes="competitiveness_num_tasks cannot exceed the compiled maximum in the app.",
+        notes="competitiveness_num_tasks cannot exceed the compiled maximum in the app. Ties at the tournament cutoff are broken by lower player number within the group so exactly competitiveness_tournament_winners participants are paid.",
     ),
     config(
         name="bertrand",
@@ -339,7 +345,8 @@ SESSION_CONFIGS = [
         num_demo_participants=2,
         headcount=2,
         summary="Instructor-ready classroom flow for trust followed by the reusable survey and payment instructions.",
-        knobs=["trust_endowment", "trust_multiplier", "trust_send_increment", "use_strategy_method"],
+        knobs=["trust_multiplier", "trust_send_increment", "use_strategy_method"],
+        notes="Endowment is fixed at 100 points in this app; trust_send_increment applies within that fixed endowment.",
     ),
     classroom_bundle(
         name="public_goods_with_survey",
@@ -358,6 +365,7 @@ SESSION_CONFIGS = [
         headcount=8,
         summary="Instructor-ready classroom flow for the supply-and-demand market with follow-up survey and payment screen.",
         knobs=["buyer_values", "seller_costs", "clearing_price_rule"],
+        notes="Order-price validation expands to the largest configured buyer value or seller cost.",
     ),
     classroom_bundle(
         name="competitiveness_with_survey",
@@ -375,6 +383,7 @@ SESSION_CONFIGS = [
             "competitiveness_tournament_rate",
             "competitiveness_tournament_winners",
         ],
+        notes="competitiveness_num_tasks cannot exceed the compiled maximum in the app. Ties at the tournament cutoff are broken by lower player number within the group so exactly competitiveness_tournament_winners participants are paid.",
     ),
 ]
 
@@ -388,10 +397,8 @@ SESSION_CONFIG_DEFAULTS = dict(
     participation_fee=0.00,
     doc="Instructor-facing classroom experiment session.",
     use_strategy_method=False,
-    trust_endowment=100,
     trust_multiplier=3,
     trust_send_increment=10,
-    ultimatum_endowment=100,
     pd_payoff_a=300,
     pd_payoff_b=200,
     pd_payoff_c=100,

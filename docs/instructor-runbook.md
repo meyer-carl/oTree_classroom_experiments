@@ -12,12 +12,14 @@ This runbook covers the minimum steps needed to launch, supervise, and close a l
 4. Decide whether the class will use strategy-method variants for ultimatum, trust, or centipede.
 5. If the class needs surveys or payment instructions, include `survey` and `payment_info` in the flow.
 6. If imports behave strangely, check `docs/project/environment.md` for the local shadowing trap before changing code.
+7. Run `./scripts/verify_high_coverage.sh` before sharing the repo or using a changed app in class.
 
 ## Bootstrap
 
-- Create or activate the local Python environment.
-- Install the project dependencies from `requirements.txt`.
+- Run `./scripts/bootstrap.sh` to create the project-local `.venv`.
+- Install or refresh project dependencies through that local environment.
 - Verify that the interpreter resolves the expected `otree` package.
+- Use the verification scripts as written; they intentionally run against the repo-local `.venv` rather than any external Python on `PATH`.
 - Confirm the admin password is set if the class will use the admin interface.
 - Treat a missing or stale `db.sqlite3` as a normal local reset condition.
 
@@ -28,6 +30,14 @@ This runbook covers the minimum steps needed to launch, supervise, and close a l
 - Create the session using the intended room or demo path.
 - Confirm the app order matches the teaching plan.
 - Load one browser as a test participant before bringing in the class.
+
+## Manual Release Gate
+
+- Create one bundled session such as `survey_payment` or a classroom bundle that includes `survey` and `payment_info`.
+- Run one odd-headcount strategy-method app.
+- Run one large-group market app.
+- Confirm participant labels or room flow behave as intended.
+- Export the data and verify that the output fields are interpretable.
 
 ## During Class
 
