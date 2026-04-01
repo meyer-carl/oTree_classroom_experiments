@@ -3,13 +3,27 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
-PACKAGE_BASENAME="oTree_classroom_experiments_instructor_$(date +%Y%m%d)"
+VERSION_FILE="$ROOT_DIR/VERSION"
+if [[ ! -f "$VERSION_FILE" ]]; then
+  echo "Missing VERSION file at $VERSION_FILE"
+  exit 1
+fi
+
+PACKAGE_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE")"
+if [[ -z "$PACKAGE_VERSION" ]]; then
+  echo "VERSION file is empty."
+  exit 1
+fi
+
+PACKAGE_BASENAME="oTree_classroom_experiments_instructor_v${PACKAGE_VERSION}"
 mkdir -p "$DIST_DIR"
+"$ROOT_DIR/scripts/build_instructor_pdfs.sh"
 STAGING_ROOT="$(mktemp -d "$DIST_DIR/staging.XXXXXX")"
 PACKAGE_ROOT="$STAGING_ROOT/oTree_classroom_experiments"
 ZIP_PATH="$DIST_DIR/${PACKAGE_BASENAME}.zip"
+CHECKSUM_PATH="$DIST_DIR/SHA256SUMS.txt"
 
-mkdir -p "$PACKAGE_ROOT" "$PACKAGE_ROOT/docs" "$PACKAGE_ROOT/scripts"
+mkdir -p "$PACKAGE_ROOT" "$PACKAGE_ROOT/docs" "$PACKAGE_ROOT/scripts" "$PACKAGE_ROOT/instructor_pdfs"
 
 copy_path() {
   local source_path="$1"
@@ -33,6 +47,8 @@ for file_path in \
   "$ROOT_DIR/README.md" \
   "$ROOT_DIR/INSTRUCTOR_QUICKSTART.md" \
   "$ROOT_DIR/LICENSE" \
+  "$ROOT_DIR/VERSION" \
+  "$ROOT_DIR/RELEASE_NOTES.md" \
   "$ROOT_DIR/.python-version" \
   "$ROOT_DIR/requirements.txt" \
   "$ROOT_DIR/requirements-dev.txt" \
@@ -54,9 +70,16 @@ for doc_path in "$ROOT_DIR"/docs/*.md; do
   copy_path "$doc_path" "$PACKAGE_ROOT/docs/"
 done
 
+copy_path "$ROOT_DIR/docs/instructor-pdf-manifest.tsv" "$PACKAGE_ROOT/docs/"
+copy_path "$ROOT_DIR/dist/instructor_pdfs" "$PACKAGE_ROOT/"
+
 for script_path in \
   "$ROOT_DIR/scripts/bootstrap.sh" \
+  "$ROOT_DIR/scripts/build_instructor_pdfs.sh" \
+  "$ROOT_DIR/scripts/build_quarter_earnings.py" \
+  "$ROOT_DIR/scripts/audit_headcount_matrix.py" \
   "$ROOT_DIR/scripts/check_environment.py" \
+  "$ROOT_DIR/scripts/generate_room_labels.py" \
   "$ROOT_DIR/scripts/run_preflight.sh" \
   "$ROOT_DIR/scripts/run_session_suite.py" \
   "$ROOT_DIR/scripts/session_suites.py" \
@@ -68,6 +91,8 @@ for script_path in \
 do
   copy_path "$script_path" "$PACKAGE_ROOT/scripts/"
 done
+
+copy_path "$ROOT_DIR/tests" "$PACKAGE_ROOT/"
 
 for app_dir in "$ROOT_DIR"/*; do
   if [[ -d "$app_dir" && -f "$app_dir/__init__.py" ]]; then
@@ -81,4 +106,10 @@ rm -f "$ZIP_PATH"
   zip -qr "$ZIP_PATH" "oTree_classroom_experiments"
 )
 
+(
+  cd "$DIST_DIR"
+  shasum -a 256 "$(basename "$ZIP_PATH")" > "$CHECKSUM_PATH"
+)
+
 echo "Created instructor package: $ZIP_PATH"
+echo "Wrote checksums: $CHECKSUM_PATH"

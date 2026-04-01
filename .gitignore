@@ -17,3 +17,4 @@ merge.ps1
 .ruff_cache/
 dist/
 principled_review_runs/
+docs/.Rhistory

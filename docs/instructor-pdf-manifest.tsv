@@ -1,0 +1,12 @@
+# path	slug	title	standalone
+INSTRUCTOR_QUICKSTART.md	instructor_quickstart	Instructor Quick Start	yes
+docs/install-from-scratch.md	install_from_scratch	Install From Scratch	yes
+docs/hosting-and-deployment.md	hosting_and_deployment	Hosting and Deployment	yes
+docs/classroom-readiness.md	classroom_readiness	Classroom Readiness	yes
+docs/identity-and-grading.md	identity_and_grading	Identity and Grading	yes
+docs/headcount-and-fallbacks.md	headcount_and_fallbacks	Headcount and Fallbacks	yes
+docs/instructor-runbook.md	instructor_runbook	Instructor Runbook	yes
+docs/experiment-catalog.md	experiment_catalog	Experiment Catalog	yes
+docs/classroom-playbooks.md	classroom_playbooks	Classroom Playbooks	yes
+docs/data-and-export.md	data_and_export	Data and Export	yes
+docs/troubleshooting.md	troubleshooting	Troubleshooting	yes

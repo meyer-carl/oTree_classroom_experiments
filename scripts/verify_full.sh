@@ -11,4 +11,5 @@ if [[ ! -x "$PROJECT_PYTHON" ]]; then
 fi
 
 ./scripts/run_preflight.sh
+./scripts/build_instructor_pdfs.sh
 "$PROJECT_PYTHON" scripts/run_session_suite.py full

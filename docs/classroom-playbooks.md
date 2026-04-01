@@ -11,6 +11,7 @@
 ## Odd Headcount
 
 - If a multiplayer app requires a full group, decide before class whether unmatched students should wait, skip ahead, or be routed through a strategy-method path.
+- Use `docs/headcount-and-fallbacks.md` to decide whether the app is truly flexible or merely skips unmatched players.
 - For large-group markets, seed the class with a few extra participants or a small backup activity.
 - For live demos, keep one or two additional browsers available for late arrivals.
 
@@ -25,12 +26,21 @@
 - Warn participants before the clock starts.
 - Keep the timer visible if the task depends on speed.
 - After the task ends, explain whether the time limit affected payoff or only participation.
+- If a timeout happens because students did not understand the rule, stop and reset expectations before moving on.
 
 ## Market-Learning Apps
 
 - For `bc_asset_market_bubble`, put the current fundamental value on the board before each round so students can compare price and value in real time.
 - Tell students explicitly that cash and asset holdings carry forward across rounds; otherwise they will misread later-round incentives.
 - Debrief the difference between the market-clearing price and the fundamental value, not just whether trade happened.
+- Do not launch `ak_market_supply_demand` unless you have a full eight-trader room or reserve browsers ready.
+
+## Late Arrivals and Reconnects
+
+- Before the session starts, late arrivals are manageable if seats still exist.
+- After a multiplayer app starts, do not improvise new final groups unless the headcount matrix explicitly supports it.
+- If a student refreshes their browser, inspect the admin page before reassigning them to a new participant seat.
+- If a student opens the wrong room link, fix it before creating the session whenever possible.
 
 ## Debrief Pattern
 
