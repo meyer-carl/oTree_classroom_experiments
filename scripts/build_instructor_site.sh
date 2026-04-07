@@ -9,4 +9,4 @@ if [[ ! -x "$PROJECT_PYTHON" ]]; then
   PROJECT_PYTHON="$(command -v python3)"
 fi
 
-"$PROJECT_PYTHON" "$ROOT_DIR/scripts/build_instructor_pdfs.py"
+"$PROJECT_PYTHON" "$ROOT_DIR/scripts/build_instructor_site.py"

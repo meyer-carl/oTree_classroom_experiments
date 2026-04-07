@@ -27,3 +27,4 @@ Use this skill when mapping an oTree classroom repository before code changes.
 - Prioritize live-class failure modes.
 - Separate app logic risk from documentation risk.
 - Prefer a small set of high-value recommendations.
+- Treat `.codex/skills/` as read-only control-plane content and keep runtime artifacts under `.codex/runs/`, `.codex/cache/`, `.codex/out/`, `.codex/logs/`, or `.codex/worktrees/`.

@@ -10,6 +10,6 @@ if [[ ! -x "$PROJECT_PYTHON" ]]; then
   exit 1
 fi
 
-./scripts/run_preflight.sh
-./scripts/build_instructor_pdfs.sh
+zsh ./scripts/run_preflight.sh
+zsh ./scripts/build_instructor_pdfs.sh
 "$PROJECT_PYTHON" scripts/run_session_suite.py full

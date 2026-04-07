@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import importlib.util
-import re
 import sys
+import csv
 from pathlib import Path
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
-DOC_PATH = ROOT_DIR / "docs" / "headcount-and-fallbacks.md"
+DOC_PATH = ROOT_DIR / "docs" / "project" / "headcount-matrix.tsv"
 
 EXPECTED_ODD_BEHAVIOR = {
     "any count": "not applicable",
@@ -21,21 +21,14 @@ EXPECTED_ODD_BEHAVIOR = {
 
 def load_matrix(doc_path: Path) -> dict[str, dict[str, str]]:
     rows: dict[str, dict[str, str]] = {}
-    table_headers = None
-    for raw_line in doc_path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line.startswith("|"):
-            continue
-        cells = [cell.strip() for cell in line.strip("|").split("|")]
-        if not cells or set(cells[0]) == {"-"}:
-            continue
-        if cells[0] == "App":
-            table_headers = cells
-            continue
-        if not table_headers or not cells[0].startswith("`"):
-            continue
-        app_name = cells[0].strip("`")
-        rows[app_name] = dict(zip(table_headers[1:], cells[1:]))
+    with doc_path.open(encoding="utf-8") as handle:
+        lines = [line for line in handle if line.strip()]
+        if lines and lines[0].startswith("#"):
+            lines[0] = lines[0].lstrip("#").lstrip()
+        reader = csv.DictReader(lines, delimiter="\t")
+        for row in reader:
+            app_name = row.pop("app_name")
+            rows[app_name] = row
     if not rows:
         raise ValueError(f"No headcount rows found in {doc_path}")
     return rows
@@ -51,7 +44,7 @@ def load_app_metadata(root_dir: Path) -> dict[str, dict[str, object]]:
         module = importlib.util.module_from_spec(spec)
         assert spec and spec.loader
         spec.loader.exec_module(module)
-        group_size = module.C.PLAYERS_PER_GROUP
+        group_size = getattr(module.C, "HEADCOUNT_GROUP_SIZE", module.C.PLAYERS_PER_GROUP)
         metadata[app_name] = dict(
             group_size=group_size,
             strategy_fallback="force_strategy" in source_text,
@@ -103,24 +96,24 @@ def validate_matrix(rows: dict[str, dict[str, str]], metadata: dict[str, dict[st
         expected_compat = expected_compatibility(group_size, strategy_fallback)
         expected_odd = EXPECTED_ODD_BEHAVIOR[expected_compat]
 
-        if row["Group size"] != expected_group:
+        if row["group_size"] != expected_group:
             errors.append(
-                f"{app_name}: expected group size '{expected_group}' but found '{row['Group size']}'"
+                f"{app_name}: expected group size '{expected_group}' but found '{row['group_size']}'"
             )
-        if row["Minimum workable headcount"] != expected_min:
+        if row["minimum_workable_headcount"] != expected_min:
             errors.append(
-                f"{app_name}: expected minimum headcount '{expected_min}' but found '{row['Minimum workable headcount']}'"
+                f"{app_name}: expected minimum headcount '{expected_min}' but found '{row['minimum_workable_headcount']}'"
             )
-        if row["Compatibility"] != expected_compat:
+        if row["compatibility"] != expected_compat:
             errors.append(
-                f"{app_name}: expected compatibility '{expected_compat}' but found '{row['Compatibility']}'"
+                f"{app_name}: expected compatibility '{expected_compat}' but found '{row['compatibility']}'"
             )
-        if row["Odd-count behavior"] != expected_odd:
+        if row["odd_count_behavior"] != expected_odd:
             errors.append(
-                f"{app_name}: expected odd-count behavior '{expected_odd}' but found '{row['Odd-count behavior']}'"
+                f"{app_name}: expected odd-count behavior '{expected_odd}' but found '{row['odd_count_behavior']}'"
             )
 
-    guess_notes = rows.get("ae_guess_two_thirds", {}).get("Notes", "").lower()
+    guess_notes = rows.get("ae_guess_two_thirds", {}).get("notes", "").lower()
     if "pair" not in guess_notes:
         errors.append("ae_guess_two_thirds: notes should warn that the current implementation is paired.")
 

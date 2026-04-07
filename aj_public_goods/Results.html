@@ -5,13 +5,21 @@
     For this round:
     You started with an endowment of {{ C.ENDOWMENT }},
     of which you contributed {{ player.contribution }}.
-    Your group contributed {{ group.total_contribution }},
+    Your {{ actual_group_size }}-person group contributed {{ group.total_contribution }},
     resulting in an individual share of {{ group.individual_share }}.
     Your profit is therefore {{ player.payoff }}.
 </p>
 
-<p> You just finished round {{ player.round_number }} out of {{ C.NUM_ROUNDS }} total rounds. Your total earnings so far
-    are {{ total_payoff }}. </p>
+{{ if use_flexible_groups }}
+<p>
+    The flexible preset used an effective multiplier of {{ effective_multiplier }} for this group.
+</p>
+{{ endif }}
+
+<p>
+    You just finished round {{ player.round_number }} out of {{ C.NUM_ROUNDS }} total rounds.
+    Your total earnings so far are {{ total_payoff }}.
+</p>
 
 {{ next_button }}
 

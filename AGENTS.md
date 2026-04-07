@@ -16,6 +16,14 @@ This repository is organized for collaborative agent work. The rules below keep 
 - Use `apply_patch` for file edits.
 - Prefer small, verifiable batches over broad rewrites.
 - Add or update docs when behavior changes.
+- Write generated runtime state only under `.codex/cache/`, `.codex/out/`, `.codex/runs/`, `.codex/logs/`, or `.codex/worktrees/`.
+- Treat legacy `principled_review_runs/` as a compatibility read surface, not a default write target.
+
+## Codex Layout
+
+- Keep control-plane assets read-only under `.codex/skills/` and `.codex/scripts/`.
+- Treat `.codex/cache/`, `.codex/out/`, `.codex/runs/`, `.codex/logs/`, and `.codex/worktrees/` as the repo-local writable surfaces.
+- Keep durable instructor-facing outputs in `dist/` and the explicitly named docs files, not inside broad writable docs trees.
 
 ## Verification
 

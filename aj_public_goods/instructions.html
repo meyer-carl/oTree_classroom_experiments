@@ -3,24 +3,31 @@
         <h3>Instructions</h3>
 
         <p>
-            You will be randomly and anonymously grouped into groups of {{ C.PLAYERS_PER_GROUP }}.
+            You will be randomly and anonymously grouped into a group of {{ actual_group_size }}.
             Each player receives an endowment of {{ C.ENDOWMENT }} tokens. Each player chooses how many tokens to
             contribute to a public pot.
         </p>
 
+        {{ if use_flexible_groups }}
+        <p>
+            This flexible classroom preset allows mixed group sizes. The target size is {{ target_group_size }}, but
+            your actual group size this round is {{ actual_group_size }}.
+        </p>
+        {{ endif }}
+
         <p>
             After everyone in the group has made their choice:
             1) all contributions in the public pot are summed up, and
-            2) the public pot is multiplied by {{ C.MULTIPLIER }}, and
-            3) the resulting amount is split equally among the {{ C.PLAYERS_PER_GROUP }} group members.
+            2) the public pot is multiplied by {{ effective_multiplier }}, and
+            3) the resulting amount is split equally among the {{ actual_group_size }} group members.
         </p>
 
         <p>Payoff formula (for each player):</p>
         <p style="margin-left: 1rem;">
-            Your payoff = (endowment − your contribution) + (multiplied_pot / {{ C.PLAYERS_PER_GROUP }})
+            Your payoff = (endowment − your contribution) + (multiplied_pot / {{ actual_group_size }})
         </p>
         <p style="margin-left: 1rem;">
-            where multiplied_pot = (sum of all contributions) * {{ C.MULTIPLIER }}.
+            where multiplied_pot = (sum of all contributions) * {{ effective_multiplier }}.
         </p>
 
         <p>
@@ -30,5 +37,6 @@
 
         <p>
             You will play this game for {{ C.NUM_ROUNDS }} rounds.
+        </p>
     </div>
 </div>

@@ -1,29 +1,69 @@
 # Troubleshooting
 
-## Common Problems
+Use this guide for live recovery during setup or class.
 
-| Symptom | Likely Cause | Fix |
-| --- | --- | --- |
-| Participant is unmatched | Group is incomplete | Confirm room size or let the app skip to the next session item. |
-| Session appears stuck | Wait page is waiting for another player | Check whether a browser was abandoned or a participant left the room. |
-| Strategy-method page is confusing | The class was not warned ahead of time | Pause and restate the rule before continuing. |
-| Payoff looks wrong | Bad headcount, wrong round, or invalid input | Check the bot test case and the app’s payoff invariant. |
-| Export missing expected fields | The app did not write the field to player/group/session state | Update the model and export notes together. |
-| Student used the wrong room or label | Wrong link or mistyped participant label | Move the student before launching, or verify the secure labeled URL and retry. |
-| Student refreshed and seems duplicated | Duplicate tab or duplicate participation | Check the admin page before assigning a replacement seat. |
-| Market app has one missing trader | Final group is incomplete | Do not launch. Use a reserve browser or switch apps. |
+## Participant Is Unmatched
 
-## Live Recovery Rules
+Likely cause:
 
-- Do not restart the database unless the session is disposable.
-- If an app depends on random paying rounds, record the chosen round before moving on.
-- If a browser is lost mid-class, decide whether to wait, replace, or skip the participant based on the app’s logic.
-- For classroom demos, prefer a controlled skip over a long stall.
-- If a student arrives after a multiplayer session has begun, check `docs/headcount-and-fallbacks.md` before seating them.
-- If a timed app confused the room, stop and restate the rule instead of silently letting the timeout decide the lesson.
+- the final group is incomplete
 
-## When To Escalate
+What to do:
 
-- If unmatched handling differs between apps, document it immediately in the relevant playbook.
-- If a timeout path is untested, add a bot case before the next live class.
-- If a repeated-round app carries state forward unexpectedly, treat it as a release-blocking issue.
+- check `01_instructor_pdfs/06_headcount_and_fallbacks.pdf` immediately
+- if the app is a strategy-fallback app, use that path
+- otherwise use a reserve browser, observer role, or different app
+
+## Session Appears Stuck
+
+Likely cause:
+
+- a wait page is still waiting for another player
+
+What to do:
+
+- check whether a browser was abandoned
+- confirm whether someone joined the wrong room or opened the link twice
+- if the room is broken and the app is disposable, restart the session instead of guessing
+
+## Strategy-Method Page Is Confusing
+
+Likely cause:
+
+- the class was not warned about the rule in advance
+
+What to do:
+
+- pause
+- restate the rule out loud
+- tell students exactly when their direct move matters and when their fallback answers matter
+
+## Student Used The Wrong Link Or Refreshed Repeatedly
+
+What to do:
+
+- inspect the admin page before assigning a new seat
+- in labeled rooms, confirm the student used the correct secure URL
+- in anonymous rooms, watch for duplicate participation before continuing
+
+## Market App Is One Trader Short
+
+What to do:
+
+- do not launch the market anyway
+- use a reserve browser if you have one
+- otherwise switch to a different app
+
+## Export Looks Wrong Or Incomplete
+
+What to do:
+
+- confirm you exported the intended session
+- save the session config name, room name, and date with the export
+- if the issue persists, report the exact missing field to the maintainer who shared the package
+
+## Good Recovery Habits
+
+- do not delete `db.sqlite3` until the export is safe
+- record odd headcounts, timeouts, and manual seat changes
+- if a browser is lost mid-class, decide whether to wait, replace, or skip based on the app’s logic rather than improvising silently

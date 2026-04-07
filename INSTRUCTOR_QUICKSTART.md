@@ -2,96 +2,133 @@
 
 This is the shortest path from a fresh copy of the project to a live classroom session.
 
-If you are comfortable with GitHub, you can use the repository directly. If not, download the packaged release ZIP and work from that folder instead.
+If you are using the release ZIP, open the numbered PDFs in `01_instructor_pdfs/` or the clickable website in `02_docs_site/index.html`. If you are browsing the repository directly, the same content is in the Markdown files listed below.
 
 ## Prerequisites
 
-- Python 3.12 available as `python3.12`
-- A terminal
-- A web browser for the instructor/admin page
-- If you are starting from a blank computer, first read [docs/install-from-scratch.md](docs/install-from-scratch.md).
+- Python `3.12` available as `python3.12`
+- a terminal
+- a web browser for the instructor/admin page
+
+If the computer is blank, start with `01_instructor_pdfs/01_install_from_scratch.pdf` before doing anything else.
 
 ## First Setup
 
-1. From the project root, run `./scripts/bootstrap.sh`.
-2. Run `./scripts/verify_high_coverage.sh`.
-3. If you want printable handouts or a combined instructor packet, run `./scripts/build_instructor_pdfs.sh`.
-4. Set an admin password before launching oTree:
+Paste this into Terminal from the project root:
+
+```bash
+./scripts/bootstrap.sh
+./scripts/verify_high_coverage.sh
+```
+
+The first command creates a local `.venv` and installs the Python packages for this project, including oTree. The second command runs the broader automated check before you share the bundle or use it in class.
+
+## Set The Admin Password
+
+Paste this into Terminal and replace the example text with your own password:
 
 ```bash
 export OTREE_ADMIN_PASSWORD='choose-a-strong-password'
 ```
 
+You only need to choose the password text inside the quotes.
+
 ## Choose How Students Will Connect
 
 - Local `otree devserver` is only local until you choose a public hosting option.
-- Before the first real class, read [docs/hosting-and-deployment.md](docs/hosting-and-deployment.md).
+- Read the Hosting and Deployment guide before the first real class.
 - Default managed option: `Heroku`
 - Free classroom option: `ngrok`
 - Advanced long-term option: departmental `Ubuntu/Linux server`
 
-## First Launch
+## Run One Demo First
 
-1. Start with a live demo instead of a full class:
+Paste this into Terminal:
 
 ```bash
 source .venv/bin/activate
 otree devserver
 ```
 
-2. Open the local oTree URL in a browser.
-3. Log in as `admin`.
-4. Create one session using `live_demo` before inviting students.
+This starts oTree on your own computer.
 
-## Identity Mode
+Then do this in your browser:
 
-- For real classes, prefer stable pseudonymous labels such as `ECON101_001`.
-- Generate or refresh a room-label file with:
+1. Open the local oTree URL shown in the terminal.
+2. Log in as `admin`.
+3. Create one `live_demo` session.
+4. Open that session in a second browser or private window.
+5. Click through one short run before inviting students.
+
+## If You Use Tracked Labels
+
+Paste this into Terminal to generate pseudonymous participant labels:
 
 ```bash
-python scripts/generate_room_labels.py --prefix ECON101 --count 40 --output _rooms/econ101.txt --force
+python scripts/generate_room_labels.py \
+  --prefix ECON101 \
+  --count 40 \
+  --output _rooms/econ101.txt \
+  --force
 ```
 
-- Use `live_demo` only when you want fully anonymous participation or a quick demo.
+What the options mean:
+
+- `--prefix ECON101`: the course code that appears before the number
+- `--count 40`: create 40 labels
+- `--output _rooms/econ101.txt`: write them into that room file
+- `--force`: overwrite the file if it already exists
+
+Use stable codes like `ECON101_001`, not student names.
 
 ## What To Read Next
 
-- [README.md](README.md)
-- [docs/install-from-scratch.md](docs/install-from-scratch.md)
-- [docs/classroom-readiness.md](docs/classroom-readiness.md)
-- [docs/hosting-and-deployment.md](docs/hosting-and-deployment.md)
-- [docs/identity-and-grading.md](docs/identity-and-grading.md)
-- [docs/instructor-runbook.md](docs/instructor-runbook.md)
-- [docs/experiment-catalog.md](docs/experiment-catalog.md)
-- [docs/headcount-and-fallbacks.md](docs/headcount-and-fallbacks.md)
-- [docs/classroom-playbooks.md](docs/classroom-playbooks.md)
-- [docs/data-and-export.md](docs/data-and-export.md)
+Read these in this order:
+
+1. `01_instructor_pdfs/01_install_from_scratch.pdf`
+2. `01_instructor_pdfs/02_instructor_quickstart.pdf`
+3. `01_instructor_pdfs/03_hosting_and_deployment.pdf`
+4. `01_instructor_pdfs/04_identity_and_grading.pdf`
+5. `01_instructor_pdfs/05_classroom_readiness.pdf`
+6. `01_instructor_pdfs/06_experiment_catalog.pdf`
+7. `01_instructor_pdfs/07_headcount_and_fallbacks.pdf`
+8. `01_instructor_pdfs/08_instructor_runbook.pdf`
+9. `01_instructor_pdfs/09_data_and_export.pdf`
+10. `01_instructor_pdfs/10_troubleshooting.pdf`
+
+If you prefer clickable docs inside the ZIP, open `02_docs_site/index.html`. It follows the same order.
 
 ## Pre-Class Checklist
 
-- Verify the intended session config exists in `settings.py`.
+- Confirm the intended session config exists in `settings.py`.
 - Confirm the room file under `_rooms/` matches the participant-label plan.
-- Decide between `tracked_pseudonymous` and `fully_anonymous` mode before class.
+- Decide between `tracked_pseudonymous` and `fully_anonymous` before class.
 - Run `./scripts/verify_high_coverage.sh` after any local change.
 - Test the first app with one instructor browser before class starts.
-- Check `docs/headcount-and-fallbacks.md` before any multiplayer session.
-- Decide in advance how you will handle odd headcounts for multiplayer sessions.
+- Check `01_instructor_pdfs/06_headcount_and_fallbacks.pdf` and `01_instructor_pdfs/07_experiment_catalog.pdf` before any multiplayer session.
 
 ## Post-Class Checklist
 
 - Export data before deleting or replacing `db.sqlite3`.
 - Save the session config name, room name, and class date with the export.
 - Note any unmatched participants, timeouts, or manual interventions.
-- If you are using tracked labels, aggregate exports later with `python scripts/build_quarter_earnings.py`.
+
+Paste this into Terminal later if you used tracked labels:
+
+```bash
+python scripts/build_quarter_earnings.py \
+  exports/ \
+  --output dist/quarter_earnings.csv
+```
+
+What this command does:
+
+- reads all export CSVs in `exports/`
+- groups rows by participant label
+- writes one summary CSV to `dist/quarter_earnings.csv`
 
 ## Local Files To Keep Private Or Disposable
 
 - `.venv/`: local Python environment, do not share.
 - `db.sqlite3`: local session state, export data before resetting it.
-- `dist/`: generated share packages, rebuild as needed.
-
-## If Something Looks Wrong
-
-- If imports fail unexpectedly, make sure you are running commands from the project root and that `./scripts/bootstrap.sh` completed successfully.
-- If a session stalls, check the wait-page and unmatched guidance in `docs/troubleshooting.md`.
-- If you need a release-level confidence check, run `./scripts/verify_full.sh`.
+- `dist/`: generated release assets, rebuild as needed.

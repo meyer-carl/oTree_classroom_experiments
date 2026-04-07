@@ -8,6 +8,15 @@
     </p>
 
     <p>
+        {{ if whole_class_mode }}
+            This result was calculated from the whole active class.
+        {{ else }}
+            This result was calculated from your pair.
+        {{ endif }}
+        Group size this round: {{ active_group_size }}.
+    </p>
+
+    <p>
         Two-thirds of the average of these numbers is {{ group.two_thirds_avg }};
         the closest guess was {{ group.best_guess }}.
     </p>

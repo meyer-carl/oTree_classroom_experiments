@@ -8,7 +8,8 @@ This is the current instructor-distribution release of the oTree classroom exper
 
 - 31 oTree apps covering the classroom experiment catalog
 - 35 tested session configs, including classroom bundles and preference modules
-- instructor-facing Markdown docs plus packaged PDFs under `instructor_pdfs/`
+- instructor-facing Markdown docs plus packaged PDFs under `01_instructor_pdfs/`
+- a clickable packaged website under `02_docs_site/`
 - blank-computer setup guidance in `docs/install-from-scratch.md`
 - hosting guidance for `Heroku`, `ngrok`, and advanced `Ubuntu/Linux server` setups
 - headcount compatibility guidance, identity/grading workflow notes, and classroom troubleshooting docs

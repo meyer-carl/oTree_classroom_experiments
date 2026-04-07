@@ -7,12 +7,14 @@
     </h3>
 
     <p>
-        You are in a group of {{ C.PLAYERS_PER_GROUP }} people.
-        Each of you will be asked to choose a
-        number between 0 and {{ C.GUESS_MAX }}.
-        The winner will be the participant whose
-        number is closest to 2/3 of the
-        average of all chosen numbers.
+        {{ if whole_class_mode }}
+            This classroom preset pools everyone in the active session into one beauty contest.
+        {{ else }}
+            This legacy preset runs in groups of {{ C.HEADCOUNT_GROUP_SIZE }}.
+        {{ endif }}
+        This round currently includes {{ active_group_size }} participant{{ if active_group_size != 1 }}s{{ endif }}.
+        Each of you will choose a number between 0 and {{ C.GUESS_MAX }}.
+        The winner is the participant whose number is closest to 2/3 of the average of all chosen numbers.
     </p>
 
     <p>

@@ -33,10 +33,12 @@ SMOKE_SESSIONS = {
 HIGH_ONLY_SESSIONS = {
     "nash_demand",
     "guess_two_thirds",
+    "guess_two_thirds_classroom",
     "matching_pennies",
     "coordination_game",
     "prisoner_one_rd",
     "public_goods",
+    "public_goods_flexible",
     "two_sided_auction",
     "english_auction",
     "dutch_auction",

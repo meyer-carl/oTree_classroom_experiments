@@ -16,5 +16,14 @@ merge.ps1
 .pytest_cache/
 .ruff_cache/
 dist/
+.generated/
 principled_review_runs/
+.codex/cache/
+.codex/out/
+.codex/runs/
+.codex/logs/
+.codex/worktrees/
+.codex/config.toml
+.codex/scripts/
+tests/test_codex_layout.py
 docs/.Rhistory

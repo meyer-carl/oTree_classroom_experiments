@@ -12,8 +12,8 @@ This repository is optimized for teaching use. Code changes should preserve clas
 - Prefer shared helpers over copied page logic.
 - Check `docs/project/environment.md` before treating import issues as app bugs.
 - Assign every new session config to `smoke`, `high`, or `full` immediately.
-- Keep `docs/headcount-and-fallbacks.md` in sync with code and rerun `python scripts/audit_headcount_matrix.py`.
-- If you change instructor-facing docs, keep `docs/instructor-pdf-manifest.tsv` current.
+- Keep `docs/project/headcount-matrix.tsv` in sync with code and rerun `python scripts/audit_headcount_matrix.py`.
+- If you change instructor-facing docs, keep `docs/instructor-docs-manifest.tsv` current.
 
 ## Suggested Workflow
 
@@ -23,7 +23,7 @@ This repository is optimized for teaching use. Code changes should preserve clas
 4. Add or update bot coverage.
 5. Run `./scripts/bootstrap.sh` if the project-local `.venv` is missing, then use `./scripts/verify.sh` for local work and `./scripts/verify_high_coverage.sh` before handing work off.
 6. Update the operator docs if the change affects instructors.
-7. Run `./scripts/build_instructor_pdfs.sh` before packaging a share-ready instructor bundle.
+7. Run `./scripts/build_instructor_pdfs.sh` and `./scripts/build_instructor_site.sh` before packaging a share-ready instructor bundle.
 
 ## What Good Looks Like
 

@@ -10,5 +10,5 @@ if [[ ! -x "$PROJECT_PYTHON" ]]; then
   exit 1
 fi
 
-./scripts/run_preflight.sh
+zsh ./scripts/run_preflight.sh
 "$PROJECT_PYTHON" scripts/run_session_suite.py high

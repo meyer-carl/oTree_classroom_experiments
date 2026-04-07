@@ -1,0 +1,11 @@
+# order	path	site_path	slug	title	standalone	audience
+01	docs/install-from-scratch.md	install-from-scratch.md	install_from_scratch	Install From Scratch	yes	core
+02	INSTRUCTOR_QUICKSTART.md	instructor-quickstart.md	instructor_quickstart	Instructor Quick Start	yes	core
+03	docs/hosting-and-deployment.md	hosting-and-deployment.md	hosting_and_deployment	Hosting and Deployment	yes	core
+04	docs/identity-and-grading.md	identity-and-grading.md	identity_and_grading	Identity and Grading	yes	core
+05	docs/classroom-readiness.md	classroom-readiness.md	classroom_readiness	Classroom Readiness	yes	core
+06	docs/experiment-catalog.md	experiment-catalog.md	experiment_catalog	Experiment Catalog	yes	reference
+07	docs/headcount-and-fallbacks.md	headcount-and-fallbacks.md	headcount_and_fallbacks	Headcount and Fallbacks	yes	core
+08	docs/instructor-runbook.md	instructor-runbook.md	instructor_runbook	Instructor Runbook	yes	core
+09	docs/data-and-export.md	data-and-export.md	data_and_export	Data and Export	yes	reference
+10	docs/troubleshooting.md	troubleshooting.md	troubleshooting	Troubleshooting	yes	reference

@@ -1,22 +1,79 @@
 from otree.api import *
 
+from classroom_utils import (
+    balanced_group_matrix,
+    bool_config_value,
+    group_matrix_for_sizes,
+    int_config_value,
+    next_app,
+    partition_group_sizes,
+)
 
 
 class C(BaseConstants):
-    NAME_IN_URL = 'public_goods_simple'
-    PLAYERS_PER_GROUP = 3
+    NAME_IN_URL = "public_goods_simple"
+    PLAYERS_PER_GROUP = 1
+    HEADCOUNT_GROUP_SIZE = 3
     NUM_ROUNDS = 2
     ENDOWMENT = cu(100)
     MULTIPLIER = 1.8
+
+
+def use_flexible_groups(context) -> bool:
+    return bool_config_value(context, "public_goods_flexible_grouping", False)
+
+
+def target_group_size(context) -> int:
+    return max(2, int_config_value(context, "public_goods_target_group_size", C.HEADCOUNT_GROUP_SIZE))
+
+
+def minimum_group_size(context) -> int:
+    return 2 if use_flexible_groups(context) else C.HEADCOUNT_GROUP_SIZE
+
+
+def active_group_size(context) -> int:
+    group = getattr(context, "group", context)
+    return len(group.get_players())
 
 
 class Subsession(BaseSubsession):
     pass
 
 
+def creating_session(subsession: Subsession):
+    if subsession.round_number > 1:
+        subsession.group_like_round(1)
+        return
+
+    players = subsession.get_players()
+    if use_flexible_groups(subsession):
+        subsession.set_group_matrix(
+            balanced_group_matrix(
+                players,
+                target_group_size(subsession),
+                min_group_size=minimum_group_size(subsession),
+            )
+        )
+        return
+
+    subsession.set_group_matrix(
+        group_matrix_for_sizes(
+            players,
+            partition_group_sizes(
+                len(players),
+                C.HEADCOUNT_GROUP_SIZE,
+                allow_variable_group_sizes=False,
+                minimum_group_size=1,
+            ),
+        )
+    )
+
+
 class Group(BaseGroup):
     total_contribution = models.CurrencyField()
     individual_share = models.CurrencyField()
+    effective_group_size = models.IntegerField()
+    effective_multiplier = models.FloatField()
 
 
 class Player(BasePlayer):
@@ -24,13 +81,19 @@ class Player(BasePlayer):
         min=0, max=C.ENDOWMENT, label="How much will you contribute?"
     )
 
-# Helper to detect incomplete groups
-def is_unmatched(player: Player):
-    return len(player.group.get_players()) < C.PLAYERS_PER_GROUP
 
-# Page to notify unmatched participants and skip the app
+def is_unmatched(player: Player):
+    return active_group_size(player) < minimum_group_size(player)
+
+
+def effective_multiplier(group: Group) -> float:
+    if not use_flexible_groups(group.session):
+        return C.MULTIPLIER
+    return C.MULTIPLIER * active_group_size(group) / target_group_size(group.session)
+
+
 class Unmatched(Page):
-    template_name = 'global/Unmatched.html'
+    template_name = "global/Unmatched.html"
 
     @staticmethod
     def is_displayed(player: Player):
@@ -38,35 +101,55 @@ class Unmatched(Page):
 
     @staticmethod
     def vars_for_template(player: Player):
-        return dict(required_size=C.PLAYERS_PER_GROUP)
+        return dict(required_size=minimum_group_size(player))
 
     @staticmethod
     def app_after_this_page(player: Player, upcoming_apps):
-        return upcoming_apps[0] if upcoming_apps else None
+        return next_app(upcoming_apps)
 
 
-# FUNCTIONS
 def set_payoffs(group: Group):
     players = group.get_players()
-    contributions = [p.contribution for p in players]
+    contributions = [player.contribution for player in players]
+    group.effective_group_size = active_group_size(group)
+    group.effective_multiplier = effective_multiplier(group)
     group.total_contribution = sum(contributions)
     group.individual_share = (
-        group.total_contribution * C.MULTIPLIER / C.PLAYERS_PER_GROUP
+        group.total_contribution * group.effective_multiplier / group.effective_group_size
     )
-    for p in players:
-        p.payoff = C.ENDOWMENT - p.contribution + group.individual_share
+    for player in players:
+        player.payoff = C.ENDOWMENT - player.contribution + group.individual_share
 
 
-# PAGES
+def intro_vars(player: Player):
+    actual_size = active_group_size(player)
+    current_multiplier = effective_multiplier(player.group)
+    return dict(
+        actual_group_size=actual_size,
+        target_group_size=target_group_size(player),
+        use_flexible_groups=use_flexible_groups(player),
+        effective_multiplier=current_multiplier,
+        marginal_per_capita_return=round(current_multiplier / actual_size, 2),
+    )
+
+
 class Introduction(Page):
-    """Instructions page; show only in round 1."""
     @staticmethod
     def is_displayed(player: Player):
         return player.round_number == 1
 
+    @staticmethod
+    def vars_for_template(player: Player):
+        return intro_vars(player)
+
+
 class Contribute(Page):
-    form_model = 'player'
-    form_fields = ['contribution']
+    form_model = "player"
+    form_fields = ["contribution"]
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return intro_vars(player)
 
 
 class ResultsWaitPage(WaitPage):
@@ -74,23 +157,15 @@ class ResultsWaitPage(WaitPage):
 
 
 class Results(Page):
+    @staticmethod
     def vars_for_template(player: Player):
-        """
-        Provide current-round and cumulative information to the template:
-        - current_round: number of the current round
-        - total_rounds: total number of rounds in the session
-        - my_decision: this player's decision this round (display string)
-        - opponent_decision: other player's decision this round (display string)
-        - round_payoff: payoff for this player in the current round
-        - total_payoff: sum of payoffs across all rounds
-        - all_rounds: list of Player objects for all rounds (for history tables)
-        - paying_round: session.vars['paying_round'] if present (may be None)
-        """
-        all_rounds = player.in_all_rounds()
-        total = sum([r.payoff for r in all_rounds])
-
+        total = sum(round_player.payoff for round_player in player.in_all_rounds())
         return dict(
             total_payoff=total,
+            actual_group_size=player.group.effective_group_size,
+            effective_multiplier=player.group.effective_multiplier,
+            use_flexible_groups=use_flexible_groups(player),
         )
+
 
 page_sequence = [Unmatched, Introduction, Contribute, ResultsWaitPage, Results]
