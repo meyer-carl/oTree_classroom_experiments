@@ -1,10 +1,10 @@
 {{ block title }}Your Choice{{ endblock }}
 {{ block content }}
     <p>
-        You are Participant B.
-        Participant A sent you {{ group.sent_amount }} and you received {{ tripled_amount }}.
+        You are the <strong>{{ role_label }}</strong>.
+        The {{ counterpart_label }} sent you {{ group.sent_amount }} and you received {{ tripled_amount }}.
         Now you have {{ tripled_amount }}.
-        How much will you send to participant A?
+        How much will you send to the {{ counterpart_label }}?
     </p>
 
     {{ formfields }}

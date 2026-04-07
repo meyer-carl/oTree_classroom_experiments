@@ -2,7 +2,8 @@
 {{ block content }}
 
     <p>
-    You are Participant A. Now you have {{ endowment }}. How much will you send to participant B?
+    You are the <strong>{{ role_label }}</strong>. Now you have {{ endowment }}.
+    How much will you send to the {{ counterpart_label }}?
     </p>
 
     {{ formfields }}

@@ -1,49 +1,65 @@
 from otree.api import *
 import random
 
-from classroom_utils import bool_config_value
+from classroom_utils import (
+    apply_pair_schedule,
+    bool_config_value,
+    group_matrix_for_sizes,
+    next_app,
+    normalized_average_payoff,
+    partition_group_sizes,
+    role_assignment_schedule,
+    round_robin_pair_schedule,
+    schedule_active_counts,
+    schedule_var_key,
+    session_config_value,
+    unmatched_template_vars,
+)
 
 doc = """
 Ultimatum Game: One player decides how to divide a certain amount between themself and the other
 player.
-The code is adapted from the Dicatator game, found
+The code is adapted from the Dictator game, found
 <a href="https://github.com/oTree-org/oTree/tree/lite" target="_blank">
     here
 </a>.
 """
 
-# Constants used throughout the app
-class C(BaseConstants):
-    NAME_IN_URL = 'ultimatum'  # URL name for the app
-    PLAYERS_PER_GROUP = 2  # Number of players in each group
-    NUM_ROUNDS = 1  # Number of rounds in the game
-    ENDOWMENT = cu(100)  # Initial amount allocated to the Player 1
-    USE_STRATEGY_METHOD = False  # Set to True or use session config 'use_strategy_method'
 
-# Subsession class
+class C(BaseConstants):
+    NAME_IN_URL = 'ultimatum'
+    PLAYERS_PER_GROUP = None
+    HEADCOUNT_GROUP_SIZE = 2
+    NUM_ROUNDS = 4
+    LEGACY_ACTIVE_ROUNDS = 1
+    ENDOWMENT = cu(100)
+    USE_STRATEGY_METHOD = False
+    PROPOSER_ROLE = 'Proposer'
+    RESPONDER_ROLE = 'Responder'
+
+
 class Subsession(BaseSubsession):
     pass
 
-# Group-level data and logic
+
 class Group(BaseGroup):
-    # Field to store the amount the P1 decides to offer
     offer = models.CurrencyField(
-        doc="""Amount P1 offers to P2""",  # Documentation for the field
-        min=0,  # Minimum value allowed
-        max=C.ENDOWMENT,  # Maximum value allowed
-        label="I will offer",  # Label shown to the P1
+        doc="""Amount the proposer offers to the responder""",
+        min=0,
+        max=C.ENDOWMENT,
+        label="I will offer",
     )
     accepted = models.BooleanField(
-        doc="""Whether the offer was accepted by P2""",  # Documentation for the field
+        doc="""Whether the offer was accepted by the responder""",
         choices=[
             [True, 'Yes'],
             [False, 'No'],
         ],
-        label="Do you accept the offer?",  # Label shown to P2
-        widget=widgets.RadioSelect,  # Radio button widget for selection
+        label="Do you accept the offer?",
+        widget=widgets.RadioSelect,
     )
 
-# Player-level data and logic
+
 class Player(BasePlayer):
     min_accept = models.CurrencyField(
         min=cu(0),
@@ -52,23 +68,98 @@ class Player(BasePlayer):
         label="Minimum acceptable offer",
         blank=True,
     )
+    assigned_role = models.StringField(blank=True)
+    active_this_round = models.BooleanField(initial=True)
+    raw_round_payoff = models.CurrencyField(initial=cu(0))
+
+
+SCHEDULE_KEY = schedule_var_key(C.NAME_IN_URL, 'role_cycle_schedule')
+ROLE_KEY = schedule_var_key(C.NAME_IN_URL, 'role_cycle_roles')
+ACTIVE_COUNT_KEY = schedule_var_key(C.NAME_IN_URL, 'role_cycle_active_counts')
+
+
+def role_balanced_classroom(context):
+    return bool_config_value(context, 'role_balanced_classroom', False)
+
+
+def active_rounds(context):
+    if role_balanced_classroom(context):
+        return int(session_config_value(context, 'role_cycle_rounds', C.NUM_ROUNDS))
+    return C.LEGACY_ACTIVE_ROUNDS
+
+
+def role_cycle_payoff_rule(context):
+    return session_config_value(context, 'role_cycle_payoff_rule', 'average_active')
 
 
 def ultimatum_endowment(context):
     return C.ENDOWMENT
 
 
-def creating_session(subsession: Subsession):
-    if subsession.round_number == 1:
-        session = subsession.session
-        has_unmatched = any(
-            len(g.get_players()) < C.PLAYERS_PER_GROUP for g in subsession.get_groups()
-        )
-        session.vars['ultimatum_force_strategy'] = has_unmatched
+def role_name(player: Player):
+    if role_balanced_classroom(player):
+        return player.assigned_role
+    return C.PROPOSER_ROLE if player.id_in_group == 1 else C.RESPONDER_ROLE
+
+
+def is_active_round(player: Player):
+    return player.round_number <= active_rounds(player)
 
 
 def is_unmatched(player: Player):
-    return len(player.group.get_players()) < C.PLAYERS_PER_GROUP
+    return len(player.group.get_players()) < C.HEADCOUNT_GROUP_SIZE
+
+
+def creating_session(subsession: Subsession):
+    role_map = {}
+    if role_balanced_classroom(subsession):
+        if subsession.round_number == 1:
+            schedule = round_robin_pair_schedule(
+                [player.participant.code for player in subsession.get_players()],
+                active_rounds(subsession),
+            )
+            subsession.session.vars[SCHEDULE_KEY] = schedule
+            subsession.session.vars[ROLE_KEY] = role_assignment_schedule(
+                schedule,
+                C.PROPOSER_ROLE,
+                C.RESPONDER_ROLE,
+            )
+            subsession.session.vars[ACTIVE_COUNT_KEY] = schedule_active_counts(schedule)
+
+        role_map = subsession.session.vars[ROLE_KEY][subsession.round_number - 1]
+        apply_pair_schedule(
+            subsession,
+            subsession.session.vars[SCHEDULE_KEY][subsession.round_number - 1],
+            role_assignments=role_map,
+            primary_role=C.PROPOSER_ROLE,
+        )
+    elif subsession.round_number == 1:
+        players = list(subsession.get_players())
+        subsession.set_group_matrix(
+            group_matrix_for_sizes(
+                players,
+                partition_group_sizes(
+                    len(players),
+                    C.HEADCOUNT_GROUP_SIZE,
+                    allow_variable_group_sizes=False,
+                    minimum_group_size=1,
+                ),
+            )
+        )
+        subsession.session.vars['ultimatum_force_strategy'] = any(
+            len(group.get_players()) < C.HEADCOUNT_GROUP_SIZE for group in subsession.get_groups()
+        )
+    else:
+        subsession.group_like_round(1)
+
+    for player in subsession.get_players():
+        player.active_this_round = is_active_round(player) and not is_unmatched(player)
+        player.raw_round_payoff = cu(0)
+        player.assigned_role = (
+            role_map.get(player.participant.code, '')
+            if role_balanced_classroom(subsession)
+            else (role_name(player) if player.active_this_round else '')
+        )
 
 
 def use_strategy_method(player: Player):
@@ -78,30 +169,36 @@ def use_strategy_method(player: Player):
 
 
 def random_responder(player: Player):
-    candidates = [
-        p for p in player.subsession.get_players() if p.id_in_group == 2 and p != player
-    ]
+    candidates = [p for p in player.subsession.get_players() if p.id_in_group == 2 and p != player]
     return random.choice(candidates) if candidates else None
 
 
 def random_proposer(player: Player):
-    candidates = [
-        p for p in player.subsession.get_players() if p.id_in_group == 1 and p != player
-    ]
+    candidates = [p for p in player.subsession.get_players() if p.id_in_group == 1 and p != player]
     return random.choice(candidates) if candidates else None
 
 
-def responder_accepts_offer(responder: Player, offer):
+def responder_accepts_offer(responder: Player | None, offer):
+    if responder is None:
+        return False
     if use_strategy_method(responder) and responder.min_accept is not None:
         return offer >= responder.min_accept
     return responder.group.accepted
 
-# FUNCTIONS
-# Function to calculate and set payoffs for both players
+
+def assign_payoff(player: Player, raw_payoff):
+    player.raw_round_payoff = raw_payoff
+    if role_balanced_classroom(player) and role_cycle_payoff_rule(player) == 'average_active':
+        active_count = player.session.vars[ACTIVE_COUNT_KEY].get(player.participant.code, 1)
+        player.payoff = normalized_average_payoff(player, raw_payoff, active_count)
+    else:
+        player.payoff = raw_payoff
+
+
 def set_payoffs(group: Group):
     endowment = ultimatum_endowment(group)
     players = group.get_players()
-    if len(players) < C.PLAYERS_PER_GROUP:
+    if len(players) < C.HEADCOUNT_GROUP_SIZE:
         lone_player = players[0]
         if lone_player.id_in_group == 1:
             offer = group.offer or cu(0)
@@ -111,77 +208,111 @@ def set_payoffs(group: Group):
             offer = proposer.group.offer if proposer and proposer.group.offer is not None else cu(0)
             group.offer = offer
             responder = lone_player if proposer else None
-        accepted = responder_accepts_offer(responder, offer) if responder else False
+        accepted = responder_accepts_offer(responder, offer)
         group.accepted = accepted
         if lone_player.id_in_group == 1:
-            lone_player.payoff = endowment - offer if accepted else cu(0)
+            assign_payoff(lone_player, endowment - offer if accepted else cu(0))
         else:
-            lone_player.payoff = offer if accepted else cu(0)
+            assign_payoff(lone_player, offer if accepted else cu(0))
         return
 
-    p1 = group.get_player_by_id(1)  # Get the P1 (Player 1)
-    p2 = group.get_player_by_id(2)  # Get the P2 (Player 2)
+    proposer = next(player for player in players if role_name(player) == C.PROPOSER_ROLE)
+    responder = next(player for player in players if role_name(player) == C.RESPONDER_ROLE)
 
-    if use_strategy_method(p2):
-        group.accepted = group.offer >= p2.min_accept
+    if use_strategy_method(responder):
+        group.accepted = group.offer >= (responder.min_accept or cu(0))
 
-    if group.accepted:  # Check if P2 accepted the offer
-        p1.payoff = endowment - group.offer  # P1's payoff is the amount they kept
-        p2.payoff = group.offer  # P2's payoff is the amount they accepted
+    if group.accepted:
+        assign_payoff(proposer, endowment - group.offer)
+        assign_payoff(responder, group.offer)
     else:
-        p1.payoff = cu(0)  # If P2 did not accept, P1 gets nothing
-        p2.payoff = cu(0)  # If P2 did not accept, P2 gets nothing
+        assign_payoff(proposer, cu(0))
+        assign_payoff(responder, cu(0))
 
-# PAGES
-# Introduction page
-class Introduction(Page):
-    """Explain instructions to both players."""
 
-    @staticmethod
-    def vars_for_template(player: Player):
-        return dict(endowment=ultimatum_endowment(player))
+class Unmatched(Page):
+    template_name = 'global/Unmatched.html'
 
-# Page where the P1 makes their decision
-class Offer(Page):
-    form_model = 'group'  # The form data is stored at the group level
-    form_fields = ['offer']  # Field to be filled out by the P1
-
-    # Only display this page to the P1 (player 1)
     @staticmethod
     def is_displayed(player: Player):
-        return player.id_in_group == 1
+        return not role_balanced_classroom(player) and is_unmatched(player) and player.round_number == 1
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return unmatched_template_vars(C.HEADCOUNT_GROUP_SIZE)
+
+    @staticmethod
+    def app_after_this_page(player: Player, upcoming_apps):
+        return next_app(upcoming_apps)
+
+
+class SitOutRound(Page):
+    template_name = 'global/SitOutRound.html'
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return role_balanced_classroom(player) and is_active_round(player) and is_unmatched(player)
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return dict(current_round=player.round_number, total_rounds=active_rounds(player))
+
+
+class Introduction(Page):
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.round_number == 1 and player.active_this_round
 
     @staticmethod
     def vars_for_template(player: Player):
         return dict(endowment=ultimatum_endowment(player))
+
+
+class Offer(Page):
+    form_model = 'group'
+    form_fields = ['offer']
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.active_this_round and role_name(player) == C.PROPOSER_ROLE
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return dict(
+            endowment=ultimatum_endowment(player),
+            role_label=role_name(player),
+            counterpart_role=C.RESPONDER_ROLE,
+            counterpart_label='responder',
+        )
 
     @staticmethod
     def error_message(player: Player, values):
         if values['offer'] > ultimatum_endowment(player):
             return f"The offer cannot exceed the session endowment of {ultimatum_endowment(player)}."
-    
-# Wait page to synchronize players
+
+
 class WaitForOtherPlayers(WaitPage):
-    """Wait for other Players."""
-    pass
-
-# Page where the P2 responds to the offer
-class Response(Page):
-    """Player 2 decides whether to accept or reject."""
-    form_model  = 'group'
-    form_fields = ['accepted']
-
-    # Only display this page to the P2 (player 2)
     @staticmethod
     def is_displayed(player: Player):
-        return player.id_in_group == 2 and not use_strategy_method(player)
+        return player.active_this_round and not use_strategy_method(player)
 
-    # Pass variables to the template for display
+
+class Response(Page):
+    form_model = 'group'
+    form_fields = ['accepted']
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.active_this_round and role_name(player) == C.RESPONDER_ROLE and not use_strategy_method(player)
+
     @staticmethod
     def vars_for_template(player: Player):
         return dict(
-            offer = player.group.offer,
-            endowment = ultimatum_endowment(player),
+            offer=player.group.offer,
+            endowment=ultimatum_endowment(player),
+            role_label=role_name(player),
+            counterpart_role=C.PROPOSER_ROLE,
+            counterpart_label='proposer',
         )
 
 
@@ -191,39 +322,54 @@ class StrategyResponse(Page):
 
     @staticmethod
     def is_displayed(player: Player):
-        return player.id_in_group == 2 and use_strategy_method(player)
+        return player.active_this_round and role_name(player) == C.RESPONDER_ROLE and use_strategy_method(player)
 
     @staticmethod
     def vars_for_template(player: Player):
         return dict(endowment=ultimatum_endowment(player))
 
-# Wait page to synchronize players and calculate payoffs
-class ResultsWaitPage(WaitPage):
-    after_all_players_arrive = set_payoffs  # Call set_payoffs after all P1 and P2 get to this page
 
-# Results page to display the outcome to both players
-class Results(Page):
-    # Pass variables to the template for display
-    @staticmethod
-    def vars_for_template(player: Player):
-        endowment = ultimatum_endowment(player)
-        return dict(
-            offer    = player.group.offer,
-            accepted = player.group.accepted,
-            kept     = endowment - player.group.offer,
-            endowment=endowment,
-        )
-
-# Wait for all groups so strategy responses are available for random matching
 class StrategySyncWaitPage(WaitPage):
     wait_for_all_groups = True
 
     @staticmethod
     def is_displayed(player: Player):
-        return use_strategy_method(player)
+        return player.active_this_round and use_strategy_method(player)
 
-# Sequence of pages in the app
+
+class ResultsWaitPage(WaitPage):
+    after_all_players_arrive = set_payoffs
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.active_this_round
+
+
+class Results(Page):
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.active_this_round
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        endowment = ultimatum_endowment(player)
+        is_proposer = role_name(player) == C.PROPOSER_ROLE
+        return dict(
+            offer=player.group.offer,
+            accepted=player.group.accepted,
+            kept=endowment - player.group.offer,
+            endowment=endowment,
+            is_proposer=is_proposer,
+            role_label=role_name(player),
+            counterpart_role=C.RESPONDER_ROLE if is_proposer else C.PROPOSER_ROLE,
+            counterpart_label='responder' if is_proposer else 'proposer',
+            raw_round_payoff=player.raw_round_payoff,
+        )
+
+
 page_sequence = [
+    Unmatched,
+    SitOutRound,
     Introduction,
     StrategyResponse,
     Offer,

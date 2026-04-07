@@ -1,9 +1,9 @@
 {{ block title }}Your Offer{{ endblock }}
 {{ block content }}
 <p>
-    You are <strong>Participant 1</strong> (the proposer).<br>
+    You are the <strong>{{ role_label }}</strong>.<br>
     Please decide how much of the {{ endowment }}
-    you will <strong>offer</strong> to Participant 2.
+    you will <strong>offer</strong> to the {{ counterpart_label }}.
 </p>
 
 {{ formfields }}

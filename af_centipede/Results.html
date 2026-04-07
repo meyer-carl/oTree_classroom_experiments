@@ -1,13 +1,14 @@
 {{ block title }}Results{{ endblock }}
 {{ block content }}
 <p>
+    You started this game as <strong>{{ starting_role }}</strong>.<br>
     {% if not taker %}
-    No one stopped by the final round. You split the pot equally and each earn <strong>{{ player.payoff }}</strong>.
+    No one stopped by the final round. You split the pot equally and each earn <strong>{{ raw_round_payoff }}</strong>.
     {% else %}
-    {% if taker == player.id_in_group %}
-    You <strong>stopped</strong> the game in round {{ final_round }} and earned <strong>{{ player.payoff }}</strong>.
+    {% if player_stopped %}
+    You <strong>stopped</strong> the game in round {{ final_round }} and earned <strong>{{ raw_round_payoff }}</strong>.
     {% else %}
-    Your opponent <strong>stopped</strong> the game in round {{ final_round }} and you earned <strong>{{ player.payoff
+    Your opponent <strong>stopped</strong> the game in round {{ final_round }} and you earned <strong>{{ raw_round_payoff
         }}</strong>.
     {% endif %}
     {% endif %}

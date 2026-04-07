@@ -5,17 +5,27 @@ from . import *
 
 
 class PlayerBot(Bot):
-    cases = ['direct_accept', 'direct_reject', 'strategy_accept', 'strategy_reject']
+    cases = ['direct_accept', 'strategy_accept']
 
     def play_round(self):
-        self.player.session.vars['ultimatum_force_strategy'] = self.case.startswith('strategy')
+        if self.round_number > active_rounds(self.player):
+            return
 
-        yield Introduction
+        self.player.session.vars['ultimatum_force_strategy'] = (
+            self.case.startswith('strategy') and not role_balanced_classroom(self.player)
+        )
 
-        accepted = self.case.endswith('accept')
-        expected_payoff = cu(50) if accepted else cu(0)
+        if self.player.active_this_round is False:
+            yield SitOutRound
+            expect(self.player.payoff, cu(0))
+            return
 
-        if self.player.id_in_group == 1:
+        if self.round_number == 1:
+            yield Introduction
+
+        accepted = True
+
+        if role_name(self.player) == C.PROPOSER_ROLE:
             yield SubmissionMustFail(Offer, dict(offer=C.ENDOWMENT + cu(1)))
             yield Offer, dict(offer=cu(50))
         else:
@@ -24,15 +34,23 @@ class PlayerBot(Bot):
                     StrategyResponse,
                     dict(min_accept=C.ENDOWMENT + cu(1)),
                 )
-                min_accept = cu(40) if accepted else cu(60)
-                yield StrategyResponse, dict(min_accept=min_accept)
+                yield StrategyResponse, dict(min_accept=cu(40))
             else:
                 yield SubmissionMustFail(Response, dict())
                 yield Response, dict(accepted=accepted)
 
         expect(self.player.group.accepted, accepted)
-        expect(self.player.payoff, expected_payoff)
+        expect(self.player.raw_round_payoff, cu(50))
         yield Results
+
+        if role_balanced_classroom(self.player) and self.round_number == active_rounds(self.player):
+            roles = {
+                round_player.assigned_role
+                for round_player in self.player.in_all_rounds()
+                if round_player.active_this_round
+            }
+            expect(C.PROPOSER_ROLE in roles, True)
+            expect(C.RESPONDER_ROLE in roles, True)
 
 
 class DummyGroup:

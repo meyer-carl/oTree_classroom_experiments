@@ -1,8 +1,8 @@
 {{ block title }}Your Response{{ endblock }}
 {{ block content }}
 <p>
-    You are <strong>Participant 2</strong> (the responder).<br>
-    Participant 1 has offered you <strong>{{ group.offer }}</strong> out of {{ endowment }}.
+    You are the <strong>{{ role_label }}</strong>.<br>
+    The {{ counterpart_label }} has offered you <strong>{{ offer }}</strong> out of {{ endowment }}.
 </p>
 
 {{ formfields }}

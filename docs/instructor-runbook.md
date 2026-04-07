@@ -78,19 +78,41 @@ For official background, see the oTree room and server docs referenced in `03_ho
 2. Save notes about unusual behavior, odd headcounts, or browser issues.
 3. Reset the room assignment if the next class needs a different participant pool.
 
-If you used tracked pseudonymous labels, paste this into Terminal later to build the quarter summary:
+If you used tracked pseudonymous labels and want a grading-oriented summary, paste this into Terminal later:
+
+```bash
+python scripts/build_grading_summary.py \
+  exports/
+```
+
+What this command does:
+
+- reads one or more `all_apps_wide.csv` exports in `exports/`
+- writes `dist/grading/session_summary.csv`
+- writes `dist/grading/quarter_summary.csv`
+
+How to interpret the main columns:
+
+- `raw_earnings_points`: what the student actually earned in active roles
+- `app_payoff_points`: the oTree payoff after any classroom normalization rule
+- `max_attainable_points`: the best feasible payoff for the role and opportunity the student actually had
+- `overall_attainment_fraction`: the recommended grading metric
+
+Recommended policy:
+
+- grade on `overall_attainment_fraction`
+- treat raw earnings and raw-earnings percentiles as informational only
+- avoid anonymous sessions if the results may affect grades
+
+If you only need the older raw-only summary, the legacy helper still exists.
+
+Paste this into Terminal:
 
 ```bash
 python scripts/build_quarter_earnings.py \
   exports/ \
   --output dist/quarter_earnings.csv
 ```
-
-What this command does:
-
-- reads the export CSVs in `exports/`
-- groups rows by participant label
-- writes one quarter summary CSV to `dist/quarter_earnings.csv`
 
 ## Minimum Questions To Answer Before Launch
 

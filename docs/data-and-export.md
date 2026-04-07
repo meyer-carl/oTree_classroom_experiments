@@ -22,7 +22,36 @@ For tracked pseudonymous classes:
 
 1. Save each class export in one folder.
 2. Keep the session config name and class date in the filename.
-3. Aggregate the quarter totals with the helper script.
+3. Use the grading helper for grade-linked summaries.
+
+Paste this into Terminal:
+
+```bash
+python scripts/build_grading_summary.py \
+  exports/
+```
+
+What this command does:
+
+- reads one or more `all_apps_wide.csv` exports in `exports/`
+- groups rows by participant label and session
+- writes `dist/grading/session_summary.csv`
+- writes `dist/grading/quarter_summary.csv`
+
+What the main outputs mean:
+
+- `raw_earnings_points`: actual points earned in active opportunities
+- `app_payoff_points`: oTree payoff after any classroom normalization
+- `max_attainable_points`: best feasible payoff for the role and opportunity actually faced
+- `attainment_fraction`: normalized attainment based on `raw_earnings_points / max_attainable_points`
+
+Recommended instructor use:
+
+- grade from `overall_attainment_fraction`
+- use raw totals and percentiles only as a secondary diagnostic
+- do not include anonymous sessions in grade-linked summaries
+
+If you only need the old raw cumulative total, the legacy helper still works.
 
 Paste this into Terminal:
 
@@ -31,17 +60,6 @@ python scripts/build_quarter_earnings.py \
   exports/ \
   --output dist/quarter_earnings.csv
 ```
-
-What this command does:
-
-- reads every CSV export in `exports/`
-- groups rows by participant label
-- sums the detected payoff column
-- writes one summary CSV to `dist/quarter_earnings.csv`
-
-What `--output` means:
-
-- it tells the script where to save the final summary file
 
 ## Operational Guidance
 

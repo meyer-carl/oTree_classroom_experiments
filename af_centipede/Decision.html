@@ -1,6 +1,7 @@
-{{ block title }}Decision – Round {{ player.round_number }}{{ endblock }}
+{{ block title }}Decision - Game {{ game_number }}, Round {{ node_round }}{{ endblock }}
 {{ block content }}
 <p>The pot is currently <strong>{{ pot }}</strong>.</p>
+<p>You started this game as <strong>{{ starting_role }}</strong>.</p>
 <p>It's your turn; would you like to <strong>Stop</strong> or <strong>Pass</strong>?</p>
 {{ formfields }}
 {{ next_button }}

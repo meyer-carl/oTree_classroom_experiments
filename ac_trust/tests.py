@@ -8,11 +8,22 @@ class PlayerBot(Bot):
     cases = ['direct_return', 'strategy_return']
 
     def play_round(self):
-        self.player.session.vars['trust_force_strategy'] = self.case == 'strategy_return'
+        if self.round_number > active_rounds(self.player):
+            return
 
-        yield Introduction
+        self.player.session.vars['trust_force_strategy'] = (
+            self.case == 'strategy_return' and not role_balanced_classroom(self.player)
+        )
 
-        if self.player.id_in_group == 1:
+        if self.player.active_this_round is False:
+            yield SitOutRound
+            expect(self.player.payoff, cu(0))
+            return
+
+        if self.round_number == 1:
+            yield Introduction
+
+        if role_name(self.player) == C.FIRST_ROLE:
             if use_strategy_method(self.player):
                 yield SubmissionMustFail(Send, dict(sent_amount=cu(5)))
                 sent_amount = cu(10)
@@ -25,22 +36,29 @@ class PlayerBot(Bot):
                 invalid = {name: cu(0) for name in strategy_fields(self.player)}
                 invalid['strategy_send_back_10'] = C.ENDOWMENT + cu(1)
                 yield SubmissionMustFail(StrategySendBack, invalid)
-                data = {
-                    name: cu(0) for name in strategy_fields(self.player)
-                }
+                data = {name: cu(0) for name in strategy_fields(self.player)}
                 data['strategy_send_back_10'] = cu(4)
                 yield StrategySendBack, data
             else:
                 yield SubmissionMustFail(SendBack, dict(sent_back_amount=cu(-1)))
                 yield SendBack, dict(sent_back_amount=cu(20))
 
-        if self.case == 'direct_return':
-            expected = cu(80) if self.player.id_in_group == 1 else cu(100)
+        if use_strategy_method(self.player):
+            expected = cu(94) if role_name(self.player) == C.FIRST_ROLE else cu(26)
         else:
-            expected = cu(94) if self.player.id_in_group == 1 else cu(26)
+            expected = cu(80) if role_name(self.player) == C.FIRST_ROLE else cu(100)
 
-        expect(self.player.payoff, expected)
+        expect(self.player.raw_round_payoff, expected)
         yield Results
+
+        if role_balanced_classroom(self.player) and self.round_number == active_rounds(self.player):
+            roles = {
+                round_player.assigned_role
+                for round_player in self.player.in_all_rounds()
+                if round_player.active_this_round
+            }
+            expect(C.FIRST_ROLE in roles, True)
+            expect(C.SECOND_ROLE in roles, True)
 
 
 class DummyGroup:

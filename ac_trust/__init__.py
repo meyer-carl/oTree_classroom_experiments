@@ -1,7 +1,21 @@
 from otree.api import *
 import random
 
-from classroom_utils import bool_config_value, int_config_value
+from classroom_utils import (
+    apply_pair_schedule,
+    bool_config_value,
+    group_matrix_for_sizes,
+    int_config_value,
+    next_app,
+    normalized_average_payoff,
+    partition_group_sizes,
+    role_assignment_schedule,
+    round_robin_pair_schedule,
+    schedule_active_counts,
+    schedule_var_key,
+    session_config_value,
+    unmatched_template_vars,
+)
 
 doc = """
 Trust Game: This is a standard 2-player trust game where the amount sent by player 1 gets
@@ -17,40 +31,42 @@ The code is slightly modified from the original oTree code, found
 
 
 class C(BaseConstants):
-    # Constants shared across all players and rounds
-    NAME_IN_URL = 'trust'  # URL name for this app
-    PLAYERS_PER_GROUP = 2  # Number of players per group
-    NUM_ROUNDS = 1  # Number of rounds in the game
-    ENDOWMENT = cu(100)  # Initial amount allocated to P1
-    MULTIPLIER = 3  # Multiplier applied to the amount sent by P1
-    USE_STRATEGY_METHOD = False  # Set to True or use session config 'use_strategy_method'
-    SEND_INCREMENT = 10  # Increment used for strategy method table
+    NAME_IN_URL = 'trust'
+    PLAYERS_PER_GROUP = None
+    HEADCOUNT_GROUP_SIZE = 2
+    NUM_ROUNDS = 4
+    LEGACY_ACTIVE_ROUNDS = 1
+    ENDOWMENT = cu(100)
+    MULTIPLIER = 3
+    USE_STRATEGY_METHOD = False
+    SEND_INCREMENT = 10
     STRATEGY_SEND_AMOUNTS = list(range(0, int(ENDOWMENT) + 1, SEND_INCREMENT))
+    FIRST_ROLE = 'First mover'
+    SECOND_ROLE = 'Second mover'
 
 
 class Subsession(BaseSubsession):
-    # Subsession class for managing rounds
     pass
 
 
 class Group(BaseGroup):
-    # Group class for managing interactions between players
     sent_amount = models.CurrencyField(
-        min=cu(0),  # Minimum amount P1 can send
-        max=C.ENDOWMENT,  # Maximum amount P1 can send
-        doc="""Amount sent by P1""",  # Documentation for this field
-        label="How much do you want to send to the other player?",  # Label for the input field
+        min=cu(0),
+        max=C.ENDOWMENT,
+        doc="""Amount sent by the first mover""",
+        label="How much do you want to send to the other player?",
     )
     sent_back_amount = models.CurrencyField(
-        min=cu(0),  # Minimum amount P2 can send back
-        doc="""Amount sent back by P2""",  # Documentation for this field
-        label="How much do you want to send back to the other player?"  # Label for the input field
+        min=cu(0),
+        doc="""Amount sent back by the second mover""",
+        label="How much do you want to send back to the other player?",
     )
 
 
 class Player(BasePlayer):
-    # Player class for managing individual player data
-    pass
+    assigned_role = models.StringField(blank=True)
+    active_this_round = models.BooleanField(initial=True)
+    raw_round_payoff = models.CurrencyField(initial=cu(0))
 
 
 for amount in C.STRATEGY_SEND_AMOUNTS:
@@ -61,10 +77,29 @@ for amount in C.STRATEGY_SEND_AMOUNTS:
         models.CurrencyField(
             min=cu(0),
             max=cu(max_back),
-            label=f"If P1 sends {cu(amount)} (tripled to {cu(max_back)}), how much do you send back?",
+            label=f"If the first mover sends {cu(amount)} (tripled to {cu(max_back)}), how much do you send back?",
             blank=True,
         ),
     )
+
+
+SCHEDULE_KEY = schedule_var_key(C.NAME_IN_URL, 'role_cycle_schedule')
+ROLE_KEY = schedule_var_key(C.NAME_IN_URL, 'role_cycle_roles')
+ACTIVE_COUNT_KEY = schedule_var_key(C.NAME_IN_URL, 'role_cycle_active_counts')
+
+
+def role_balanced_classroom(context):
+    return bool_config_value(context, 'role_balanced_classroom', False)
+
+
+def active_rounds(context):
+    if role_balanced_classroom(context):
+        return int(session_config_value(context, 'role_cycle_rounds', C.NUM_ROUNDS))
+    return C.LEGACY_ACTIVE_ROUNDS
+
+
+def role_cycle_payoff_rule(context):
+    return session_config_value(context, 'role_cycle_payoff_rule', 'average_active')
 
 
 def trust_endowment(context):
@@ -90,17 +125,74 @@ def trust_strategy_send_amounts(context):
     return list(range(0, endowment + 1, increment))
 
 
-def creating_session(subsession: Subsession):
-    if subsession.round_number == 1:
-        session = subsession.session
-        has_unmatched = any(
-            len(g.get_players()) < C.PLAYERS_PER_GROUP for g in subsession.get_groups()
-        )
-        session.vars['trust_force_strategy'] = has_unmatched
+def role_name(player: Player):
+    if role_balanced_classroom(player):
+        return player.assigned_role
+    return C.FIRST_ROLE if player.id_in_group == 1 else C.SECOND_ROLE
+
+
+def is_active_round(player: Player):
+    return player.round_number <= active_rounds(player)
 
 
 def is_unmatched(player: Player):
-    return len(player.group.get_players()) < C.PLAYERS_PER_GROUP
+    return len(player.group.get_players()) < C.HEADCOUNT_GROUP_SIZE
+
+
+def strategy_fields(player: Player):
+    return [f'strategy_send_back_{amount}' for amount in trust_strategy_send_amounts(player)]
+
+
+def creating_session(subsession: Subsession):
+    role_map = {}
+    if role_balanced_classroom(subsession):
+        if subsession.round_number == 1:
+            schedule = round_robin_pair_schedule(
+                [player.participant.code for player in subsession.get_players()],
+                active_rounds(subsession),
+            )
+            subsession.session.vars[SCHEDULE_KEY] = schedule
+            subsession.session.vars[ROLE_KEY] = role_assignment_schedule(
+                schedule,
+                C.FIRST_ROLE,
+                C.SECOND_ROLE,
+            )
+            subsession.session.vars[ACTIVE_COUNT_KEY] = schedule_active_counts(schedule)
+
+        role_map = subsession.session.vars[ROLE_KEY][subsession.round_number - 1]
+        apply_pair_schedule(
+            subsession,
+            subsession.session.vars[SCHEDULE_KEY][subsession.round_number - 1],
+            role_assignments=role_map,
+            primary_role=C.FIRST_ROLE,
+        )
+    elif subsession.round_number == 1:
+        players = list(subsession.get_players())
+        subsession.set_group_matrix(
+            group_matrix_for_sizes(
+                players,
+                partition_group_sizes(
+                    len(players),
+                    C.HEADCOUNT_GROUP_SIZE,
+                    allow_variable_group_sizes=False,
+                    minimum_group_size=1,
+                ),
+            )
+        )
+        subsession.session.vars['trust_force_strategy'] = any(
+            len(group.get_players()) < C.HEADCOUNT_GROUP_SIZE for group in subsession.get_groups()
+        )
+    else:
+        subsession.group_like_round(1)
+
+    for player in subsession.get_players():
+        player.active_this_round = is_active_round(player) and not is_unmatched(player)
+        player.raw_round_payoff = cu(0)
+        player.assigned_role = (
+            role_map.get(player.participant.code, '')
+            if role_balanced_classroom(subsession)
+            else (role_name(player) if player.active_this_round else '')
+        )
 
 
 def use_strategy_method(player: Player):
@@ -109,72 +201,100 @@ def use_strategy_method(player: Player):
     )
 
 
-def strategy_fields(player: Player):
-    return [f'strategy_send_back_{amount}' for amount in trust_strategy_send_amounts(player)]
-
-
 def random_second_mover(player: Player):
-    candidates = [
-        p for p in player.subsession.get_players() if p.id_in_group == 2 and p != player
-    ]
+    candidates = [p for p in player.subsession.get_players() if p.id_in_group == 2 and p != player]
     return random.choice(candidates) if candidates else None
 
 
 def random_first_mover(player: Player):
-    candidates = [
-        p for p in player.subsession.get_players() if p.id_in_group == 1 and p != player
-    ]
+    candidates = [p for p in player.subsession.get_players() if p.id_in_group == 1 and p != player]
     return random.choice(candidates) if candidates else None
 
 
-# FUNCTIONS
 def sent_back_amount_max(group: Group):
-    # Function to check that the amount P2 wants to send back doesn't exceed
-    # the maximum amount P2 can send back
     return group.sent_amount * trust_multiplier(group)
 
 
+def assign_payoff(player: Player, raw_payoff):
+    player.raw_round_payoff = raw_payoff
+    if role_balanced_classroom(player) and role_cycle_payoff_rule(player) == 'average_active':
+        active_count = player.session.vars[ACTIVE_COUNT_KEY].get(player.participant.code, 1)
+        player.payoff = normalized_average_payoff(player, raw_payoff, active_count)
+    else:
+        player.payoff = raw_payoff
+
+
 def set_payoffs(group: Group):
-    # Function to calculate payoffs for both players
     endowment = trust_endowment(group)
     multiplier = trust_multiplier(group)
     players = group.get_players()
-    if len(players) < C.PLAYERS_PER_GROUP:
+    if len(players) < C.HEADCOUNT_GROUP_SIZE:
         lone_player = players[0]
         if lone_player.id_in_group == 1:
             group.sent_amount = group.sent_amount or cu(0)
-            p2 = random_second_mover(lone_player)
-            if p2 and use_strategy_method(p2):
+            second_mover = random_second_mover(lone_player)
+            if second_mover and use_strategy_method(second_mover):
                 field = f'strategy_send_back_{int(group.sent_amount)}'
-                group.sent_back_amount = getattr(p2, field, cu(0)) or cu(0)
-            elif p2:
-                group.sent_back_amount = p2.group.sent_back_amount or cu(0)
+                group.sent_back_amount = getattr(second_mover, field, cu(0)) or cu(0)
+            elif second_mover:
+                group.sent_back_amount = second_mover.group.sent_back_amount or cu(0)
             else:
                 group.sent_back_amount = cu(0)
-            lone_player.payoff = endowment - group.sent_amount + group.sent_back_amount
+            assign_payoff(lone_player, endowment - group.sent_amount + group.sent_back_amount)
         else:
-            p1 = random_first_mover(lone_player)
-            group.sent_amount = p1.group.sent_amount if p1 and p1.group.sent_amount is not None else cu(0)
+            first_mover = random_first_mover(lone_player)
+            group.sent_amount = first_mover.group.sent_amount if first_mover and first_mover.group.sent_amount is not None else cu(0)
             if use_strategy_method(lone_player):
                 field = f'strategy_send_back_{int(group.sent_amount)}'
                 group.sent_back_amount = getattr(lone_player, field, cu(0)) or cu(0)
             else:
                 group.sent_back_amount = group.sent_back_amount or cu(0)
-            lone_player.payoff = group.sent_amount * multiplier - group.sent_back_amount
+            assign_payoff(lone_player, group.sent_amount * multiplier - group.sent_back_amount)
         return
 
-    p1 = group.get_player_by_id(1)  # Get Player 1
-    p2 = group.get_player_by_id(2)  # Get Player 2
-    if use_strategy_method(p2):
+    first_mover = next(player for player in players if role_name(player) == C.FIRST_ROLE)
+    second_mover = next(player for player in players if role_name(player) == C.SECOND_ROLE)
+    if use_strategy_method(second_mover):
         field = f'strategy_send_back_{int(group.sent_amount)}'
-        group.sent_back_amount = getattr(p2, field)
-    p1.payoff = endowment - group.sent_amount + group.sent_back_amount  # Calculate P1's payoff
-    p2.payoff = group.sent_amount * multiplier - group.sent_back_amount  # Calculate P2's payoff
+        group.sent_back_amount = getattr(second_mover, field)
+
+    assign_payoff(first_mover, endowment - group.sent_amount + group.sent_back_amount)
+    assign_payoff(second_mover, group.sent_amount * multiplier - group.sent_back_amount)
 
 
-# PAGES
+class Unmatched(Page):
+    template_name = 'global/Unmatched.html'
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return not role_balanced_classroom(player) and is_unmatched(player) and player.round_number == 1
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return unmatched_template_vars(C.HEADCOUNT_GROUP_SIZE)
+
+    @staticmethod
+    def app_after_this_page(player: Player, upcoming_apps):
+        return next_app(upcoming_apps)
+
+
+class SitOutRound(Page):
+    template_name = 'global/SitOutRound.html'
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return role_balanced_classroom(player) and is_active_round(player) and is_unmatched(player)
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return dict(current_round=player.round_number, total_rounds=active_rounds(player))
+
+
 class Introduction(Page):
-    # Introduction page for explaining the game to players
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.round_number == 1 and player.active_this_round
+
     @staticmethod
     def vars_for_template(player: Player):
         return dict(
@@ -184,24 +304,21 @@ class Introduction(Page):
 
 
 class Send(Page):
-    """This page is only for P1
-    P1 sends amount (all, some, or none) to P2
-    This amount is tripled by experimenter,
-    i.e if sent amount by P1 is 5, amount received by P2 is 15"""
-
-    form_model = 'group'  # Model to store form data
-    form_fields = ['sent_amount']  # Fields to display on the form
+    form_model = 'group'
+    form_fields = ['sent_amount']
 
     @staticmethod
     def is_displayed(player: Player):
-        # Display this page only for Player 1
-        return player.id_in_group == 1
+        return player.active_this_round and role_name(player) == C.FIRST_ROLE
 
     @staticmethod
     def vars_for_template(player: Player):
         return dict(
             endowment=trust_endowment(player),
             multiplier=trust_multiplier(player),
+            role_label=role_name(player),
+            counterpart_role=C.SECOND_ROLE,
+            counterpart_label='second mover',
         )
 
     @staticmethod
@@ -215,31 +332,30 @@ class Send(Page):
 
 
 class SendBackWaitPage(WaitPage):
-    # Wait page for P2 to wait until P1 sends the amount
-    pass
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.active_this_round and not use_strategy_method(player)
 
 
 class SendBack(Page):
-    """This page is only for P2
-    P2 sends back some amount (of the tripled amount received) to P1"""
-
-    form_model = 'group'  # Model to store form data
-    form_fields = ['sent_back_amount']  # Fields to display on the form
+    form_model = 'group'
+    form_fields = ['sent_back_amount']
 
     @staticmethod
     def is_displayed(player: Player):
-        # Display this page only for Player 2
-        return player.id_in_group == 2 and not use_strategy_method(player)
+        return player.active_this_round and role_name(player) == C.SECOND_ROLE and not use_strategy_method(player)
 
     @staticmethod
     def vars_for_template(player: Player):
-        # Variables to pass to the template
         group = player.group
-        tripled_amount = group.sent_amount * trust_multiplier(player)  # Calculate tripled amount
+        tripled_amount = group.sent_amount * trust_multiplier(player)
         return dict(
             tripled_amount=tripled_amount,
             endowment=trust_endowment(player),
             multiplier=trust_multiplier(player),
+            role_label=role_name(player),
+            counterpart_role=C.FIRST_ROLE,
+            counterpart_label='first mover',
         )
 
     @staticmethod
@@ -258,7 +374,7 @@ class StrategySendBack(Page):
 
     @staticmethod
     def is_displayed(player: Player):
-        return player.id_in_group == 2 and use_strategy_method(player)
+        return player.active_this_round and role_name(player) == C.SECOND_ROLE and use_strategy_method(player)
 
     @staticmethod
     def vars_for_template(player: Player):
@@ -275,42 +391,53 @@ class StrategySendBack(Page):
             return "Please fill in a response for each possible amount."
 
 
-class ResultsWaitPage(WaitPage):
-    # Wait page for calculating payoffs after all players finish
-    after_all_players_arrive = set_payoffs  # Call set_payoffs after all players arrive
-
-
-class Results(Page):
-    """This page displays the earnings of each player"""
-
-    @staticmethod
-    def vars_for_template(player: Player):
-        # Variables to pass to the template
-        group = player.group
-        return dict(
-            tripled_amount=group.sent_amount * trust_multiplier(player),
-            endowment=trust_endowment(player),
-            multiplier=trust_multiplier(player),
-            send_increment=trust_send_increment(player),
-        )
-
-
 class StrategySyncWaitPage(WaitPage):
     wait_for_all_groups = True
 
     @staticmethod
     def is_displayed(player: Player):
-        return use_strategy_method(player)
+        return player.active_this_round and use_strategy_method(player)
 
 
-# Sequence of pages in the app
+class ResultsWaitPage(WaitPage):
+    after_all_players_arrive = set_payoffs
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.active_this_round
+
+
+class Results(Page):
+    @staticmethod
+    def is_displayed(player: Player):
+        return player.active_this_round
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        group = player.group
+        is_first_mover = role_name(player) == C.FIRST_ROLE
+        return dict(
+            tripled_amount=group.sent_amount * trust_multiplier(player),
+            endowment=trust_endowment(player),
+            multiplier=trust_multiplier(player),
+            send_increment=trust_send_increment(player),
+            role_label=role_name(player),
+            counterpart_role=C.SECOND_ROLE if is_first_mover else C.FIRST_ROLE,
+            counterpart_label='second mover' if is_first_mover else 'first mover',
+            is_first_mover=is_first_mover,
+            raw_round_payoff=player.raw_round_payoff,
+        )
+
+
 page_sequence = [
-    Introduction,  # Introduction page
+    Unmatched,
+    SitOutRound,
+    Introduction,
     StrategySendBack,
-    Send,  # Page for P1 to send amount
-    SendBackWaitPage,  # Wait page for P2
-    SendBack,  # Page for P2 to send back amount
+    Send,
+    SendBackWaitPage,
+    SendBack,
     StrategySyncWaitPage,
-    ResultsWaitPage,  # Wait page for calculating payoffs
-    Results,  # Results page to display earnings
+    ResultsWaitPage,
+    Results,
 ]

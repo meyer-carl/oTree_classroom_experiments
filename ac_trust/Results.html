@@ -1,21 +1,21 @@
 {{ block title }}Results{{ endblock }}
 {{ block content }}
 
-    {{ if player.id_in_group == 1 }}
+    {{ if is_first_mover }}
         <p>
-            You chose to send participant B {{ group.sent_amount }}.
-            Participant B returned {{ group.sent_back_amount }}.
+            You chose to send the {{ counterpart_label }} {{ group.sent_amount }}.
+            The {{ counterpart_label }} returned {{ group.sent_back_amount }}.
         </p>
         <p>
             You were initially endowed with {{ endowment }},
             chose to send {{ group.sent_amount }},
             received {{ group.sent_back_amount }}
             thus you now have:
-            {{ endowment }}-{{ group.sent_amount }}+{{ group.sent_back_amount }}=<strong>{{ player.payoff }}</strong>
+            {{ endowment }}-{{ group.sent_amount }}+{{ group.sent_back_amount }}=<strong>{{ raw_round_payoff }}</strong>
         </p>
     {{ else }}
         <p>
-            Participant A sent you {{ group.sent_amount }}.
+            The {{ counterpart_label }} sent you {{ group.sent_amount }}.
             They were tripled so you received {{ tripled_amount }}.
             You chose to return {{ group.sent_back_amount }}.
         </p>
@@ -23,7 +23,7 @@
             You received {{ tripled_amount }},
             chose to return {{ group.sent_back_amount }}
             thus you now have:
-            ({{ tripled_amount }})-({{ group.sent_back_amount }})=<strong>{{ player.payoff }}</strong>
+            ({{ tripled_amount }})-({{ group.sent_back_amount }})=<strong>{{ raw_round_payoff }}</strong>
         </p>
         .
     {{ endif }}

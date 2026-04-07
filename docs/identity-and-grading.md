@@ -80,7 +80,42 @@ After each class:
 2. Save the file with a clear course-date-app name.
 3. Keep the session config name and room name with the export.
 
-When you want a quarter summary, paste this into Terminal:
+For grading, use the grading summary helper rather than the older raw-earnings helper.
+
+Paste this into Terminal:
+
+```bash
+python scripts/build_grading_summary.py \
+  exports/
+```
+
+What this command does:
+
+- reads one or more `all_apps_wide.csv` exports from `exports/`
+- requires participant labels by default
+- writes a per-session summary to `dist/grading/session_summary.csv`
+- writes a quarter summary to `dist/grading/quarter_summary.csv`
+
+What the key grading columns mean:
+
+- `raw_earnings_points`: the unnormalized points actually earned in active opportunities
+- `app_payoff_points`: the oTree payoff total after any classroom normalization rule
+- `max_attainable_points`: the best feasible payoff for the student's actual role and opportunity
+- `attainment_fraction`: `raw_earnings_points / max_attainable_points`
+
+Recommended grading basis:
+
+- use `overall_attainment_fraction` from `dist/grading/quarter_summary.csv`
+- treat raw earnings and raw-earnings percentiles as diagnostic information, not the grading rule
+- do not use anonymous sessions for grade-linked summaries
+
+Why this is fairer:
+
+- sit-outs in role-balanced and pair-cycle presets count as zero opportunity, not as a missed earning chance
+- students are compared against the best feasible payoff for the role they actually played
+- flexible group sizes are handled using the actual session parameters and realized role opportunities
+
+The older raw-only helper still exists for backward compatibility. If you only want simple cumulative earnings, paste this into Terminal:
 
 ```bash
 python scripts/build_quarter_earnings.py \
