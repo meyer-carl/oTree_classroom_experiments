@@ -10,16 +10,25 @@
             <tr>
                 <td>{{ p.round_number }}</td>
                 <td>
-                  You were the {{ p.role }}
-                  and {{ if p.is_winner }} won {{ else }} lost {{ endif }}
+                  {{ if p.active_this_round }}
+                      You were the {{ if p.assigned_role }}{{ p.assigned_role }}{{ else }}{{ p.role }}{{ endif }}
+                      and {{ if p.is_winner }} won {{ else }} lost {{ endif }}
+                  {{ else }}
+                      You sat out this round.
+                  {{ endif }}
                 </td>
             </tr>
         {{ endfor }}
     </table>
 
     <p>
-        The paying round was {{ paying_round }}.
-        Your total payoff is therefore {{ total_payoff }}.
+        {{ if classroom_pair_cycle }}
+            Your classroom payoff is the average across the rounds in which you actively played.
+            Your total normalized payoff is therefore {{ total_payoff }}.
+        {{ else }}
+            The paying round was {{ paying_round }}.
+            Your total payoff is therefore {{ total_payoff }}.
+        {{ endif }}
     </p>
 
 {{ endblock }}

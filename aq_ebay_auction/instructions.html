@@ -8,6 +8,13 @@
     </p>
 
     <p>
+        Your auction group has {{ actual_bidder_count }} active bidder(s).
+        {{ if use_flexible_grouping }}
+            This classroom-flexible preset uses the real number of bidders in your group.
+        {{ endif }}
+    </p>
+
+    <p>
         You submit a maximum bid. The highest bidder wins.
         The price is the second-highest bid plus a small increment,
         but never above the winner's maximum bid.

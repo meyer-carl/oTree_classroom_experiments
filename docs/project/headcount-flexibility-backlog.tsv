@@ -1,29 +1,6 @@
 # app	current_ppg	current_unmatched_handling	recommended_mode	rationale
-ae_guess_two_thirds	2	skip_unmatched_in_pair_mode	whole_class_pool	Classroom beauty contest is better taught as one pooled contest than as independent pairs.
-aj_public_goods	3	skip_unmatched	variable_group_size	Public-goods incentives can be preserved with scaled payoffs in a smaller final group.
-am_english_auction	4	skip_unmatched	variable_group_size	Bidding logic is still coherent with variable bidder counts.
-an_dutch_auction	4	skip_unmatched	variable_group_size	Bidding logic is still coherent with variable bidder counts.
-ao_sealed_bid_first_price	4	skip_unmatched	variable_group_size	Bidding logic is still coherent with variable bidder counts.
-ap_sealed_bid_second_price	4	skip_unmatched	variable_group_size	Bidding logic is still coherent with variable bidder counts.
-aq_ebay_auction	4	skip_unmatched	variable_group_size	Bidding logic is still coherent with variable bidder counts.
-as_competitiveness	4	skip_unmatched	variable_group_size	Performance tournaments can be adapted to smaller groups with explicit payout rules.
-av_common_value_auction	4	skip_unmatched	variable_group_size	Bidding logic is still coherent with variable bidder counts.
-ay_volunteer_dilemma	3	skip_unmatched	variable_group_size	The volunteer problem can be parameterized for small group-size changes.
-bb_common_pool_resource	4	skip_unmatched	variable_group_size	Extraction games can be scaled to slightly different group sizes.
-bc_asset_market_bubble	4	skip_unmatched	variable_group_size	Market-learning exercise may tolerate moderate participant-count variation.
-ad_nash_demand	2	skip_unmatched	pair_cycle	Symmetric pair game can support cycling or rematching when one participant is spare.
-ag_matching_pennies	2	skip_unmatched	pair_cycle	Symmetric pair game can support cycling or rematching when one participant is spare.
-ah_coordination	2	skip_unmatched	pair_cycle	Symmetric pair game can support cycling or rematching when one participant is spare.
-ai_prisoner_one_rd	2	skip_unmatched	pair_cycle	Symmetric pair game can support cycling or rematching when one participant is spare.
-at_bertrand	2	skip_unmatched	pair_cycle	Symmetric pair game can support cycling or rematching when one participant is spare.
-au_cournot	2	skip_unmatched	pair_cycle	Symmetric pair game can support cycling or rematching when one participant is spare.
-aw_traveler_dilemma	2	skip_unmatched	pair_cycle	Symmetric pair game can support cycling or rematching when one participant is spare.
-aa_dictator	2	skip_unmatched	role_rotation_cycle	Asymmetric two-role structure can be made more resilient by rotating roles across rounds.
-al_two_sided_auction	2	skip_unmatched	role_rotation_cycle	Two-role trade exercise can be made more resilient by rotating roles across rounds.
-az_endowment_effect	2	skip_unmatched	role_rotation_cycle	Buyer/seller role symmetry supports rotation when the final headcount is odd.
-ba_gift_exchange	2	skip_unmatched	role_rotation_cycle	Employer/worker role symmetry supports rotation when the final headcount is odd.
 ab_ultimatum	2	strategy_fallback	leave_legacy_only	Current odd-headcount fallback already preserves bargaining semantics reasonably well.
 ac_trust	2	strategy_fallback	leave_legacy_only	Current odd-headcount fallback already preserves trust-game semantics reasonably well.
 af_centipede	2	strategy_fallback	leave_legacy_only	Current odd-headcount fallback already preserves centipede-game semantics reasonably well.
-ai_prisoner_mult_rd	2	skip_unmatched	leave_legacy_only	Stable repeated pairs are central to the design, so flexible rematching would change the treatment.
-ak_market_supply_demand	8	skip_unmatched	leave_legacy_only	Buyer/seller schedule balance is core to the market treatment, not just the headcount.
+ai_prisoner_mult_rd	2	skip_unmatched	leave_legacy_only	Stable repeated pairs are central to the design, so flexible rematching would change the treatment materially.
+bc_asset_market_bubble	4	skip_unmatched	leave_legacy_only	Repeated inventories, cash carry-forward, and whole-group waiting risk make a simple flexible preset too brittle; revisit only as a deeper market redesign.

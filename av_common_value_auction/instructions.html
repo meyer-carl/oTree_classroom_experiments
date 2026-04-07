@@ -8,6 +8,13 @@
     </p>
 
     <p>
+        Your auction group has {{ actual_bidder_count }} active bidder(s).
+        {{ if use_flexible_grouping }}
+            This classroom-flexible preset uses the real number of bidders in your group.
+        {{ endif }}
+    </p>
+
+    <p>
         Bids are submitted simultaneously. The highest bidder wins and earns
         the true value minus their bid (floored at 0). Ties are broken at random.
     </p>

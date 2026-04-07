@@ -10,9 +10,11 @@
     {{ for p in player_in_all_rounds }}
     <tr>
         <td>{{ p.round_number }}</td>
-        <td>{{ p.penny_side }}</td>
+        <td>{{ if p.active_this_round }}{{ p.penny_side }}{{ else }}Sit out{{ endif }}</td>
         <td>
-            {{ if p.coordinated }}
+            {{ if not p.active_this_round }}
+            Not active
+            {{ elif p.coordinated }}
             Yes
             {{ else }}
             No
@@ -23,8 +25,13 @@
 </table>
 
 <p>
+    {{ if classroom_pair_cycle }}
+    Your classroom payoff is the average across the rounds in which you actively played.<br>
+    Your total normalized payoff is therefore <strong>{{ total_payoff }}</strong>.
+    {{ else }}
     The paying round was {{ paying_round }}.<br>
     Your total payoff is therefore <strong>{{ total_payoff }}</strong>.
+    {{ endif }}
 </p>
 
 {{ endblock }}

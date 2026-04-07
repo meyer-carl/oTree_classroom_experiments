@@ -1,6 +1,15 @@
 from otree.api import *
 import random
 
+from classroom_utils import (
+    bool_config_value,
+    bounded_group_matrix,
+    group_matrix_for_sizes,
+    int_config_value,
+    next_app,
+    partition_group_sizes,
+)
+
 
 doc = """
 Sealed-bid, second-price (Vickrey) auction.
@@ -10,7 +19,8 @@ Players submit bids simultaneously. Highest bidder wins and pays the second-high
 
 class C(BaseConstants):
     NAME_IN_URL = 'sealed_bid_second_price'
-    PLAYERS_PER_GROUP = 4
+    PLAYERS_PER_GROUP = None
+    HEADCOUNT_GROUP_SIZE = 4
     NUM_ROUNDS = 1
 
     VALUE_MIN = 60
@@ -30,6 +40,7 @@ class Group(BaseGroup):
     second_highest_bid = models.CurrencyField(initial=cu(0))
     winning_price = models.CurrencyField(initial=cu(0))
     sold = models.BooleanField(initial=False)
+    actual_bidder_count = models.IntegerField(initial=0)
 
 
 class Player(BasePlayer):
@@ -43,12 +54,38 @@ class Player(BasePlayer):
     is_winner = models.BooleanField(initial=False)
 
 
-# Helper to detect incomplete groups
+def use_flexible_groups(context):
+    return bool_config_value(context, 'auction_flexible_grouping', False)
+
+
+def target_group_size(context):
+    default_size = C.HEADCOUNT_GROUP_SIZE if not use_flexible_groups(context) else 4
+    return max(2, int_config_value(context, 'auction_target_group_size', default_size))
+
+
+def maximum_group_size(context):
+    if not use_flexible_groups(context):
+        return C.HEADCOUNT_GROUP_SIZE
+    configured = int_config_value(context, 'auction_max_group_size', 6)
+    return max(target_group_size(context), configured)
+
+
+def minimum_group_size(context):
+    if not use_flexible_groups(context):
+        return C.HEADCOUNT_GROUP_SIZE
+    configured = int_config_value(context, 'auction_min_group_size', 2)
+    return max(2, min(configured, maximum_group_size(context)))
+
+
+def current_bidder_count(context):
+    group = getattr(context, 'group', context)
+    return len(group.get_players())
+
+
 def is_unmatched(player: Player):
-    return len(player.group.get_players()) < C.PLAYERS_PER_GROUP
+    return current_bidder_count(player) < minimum_group_size(player)
 
 
-# Page to notify unmatched participants and skip the app
 class Unmatched(Page):
     template_name = 'global/Unmatched.html'
 
@@ -58,22 +95,46 @@ class Unmatched(Page):
 
     @staticmethod
     def vars_for_template(player: Player):
-        return dict(required_size=C.PLAYERS_PER_GROUP)
+        return dict(required_size=minimum_group_size(player))
 
     @staticmethod
     def app_after_this_page(player: Player, upcoming_apps):
-        return upcoming_apps[0] if upcoming_apps else None
+        return next_app(upcoming_apps)
 
 
-# FUNCTIONS
 def creating_session(subsession: Subsession):
-    for p in subsession.get_players():
-        p.private_value = cu(random.randint(C.VALUE_MIN, C.VALUE_MAX))
+    players = subsession.get_players()
+    if use_flexible_groups(subsession):
+        random.shuffle(players)
+        subsession.set_group_matrix(
+            bounded_group_matrix(
+                players,
+                target_group_size(subsession),
+                min_group_size=minimum_group_size(subsession),
+                max_group_size=maximum_group_size(subsession),
+            )
+        )
+    else:
+        subsession.set_group_matrix(
+            group_matrix_for_sizes(
+                players,
+                partition_group_sizes(
+                    len(players),
+                    C.HEADCOUNT_GROUP_SIZE,
+                    allow_variable_group_sizes=False,
+                    minimum_group_size=1,
+                ),
+            )
+        )
+
+    for player in players:
+        player.private_value = cu(random.randint(C.VALUE_MIN, C.VALUE_MAX))
 
 
 def set_payoffs(group: Group):
     players = group.get_players()
-    sorted_bids = sorted([p.bid for p in players], reverse=True)
+    group.actual_bidder_count = len(players)
+    sorted_bids = sorted([player.bid for player in players], reverse=True)
     highest = sorted_bids[0]
     second_highest = sorted_bids[1] if len(sorted_bids) > 1 else cu(0)
 
@@ -83,12 +144,12 @@ def set_payoffs(group: Group):
     if highest < cu(C.RESERVE_PRICE):
         group.sold = False
         group.winning_price = cu(0)
-        for p in players:
-            p.is_winner = False
-            p.payoff = cu(0)
+        for player in players:
+            player.is_winner = False
+            player.payoff = cu(0)
         return
 
-    winners = [p for p in players if p.bid == highest]
+    winners = [player for player in players if player.bid == highest]
     winner = random.choice(winners)
 
     price = max(cu(C.RESERVE_PRICE), second_highest)
@@ -96,17 +157,25 @@ def set_payoffs(group: Group):
     group.sold = True
     group.winning_price = price
 
-    for p in players:
-        p.is_winner = p == winner
-        if p.is_winner:
-            p.payoff = max(cu(0), p.private_value - price)
+    for player in players:
+        player.is_winner = player == winner
+        if player.is_winner:
+            player.payoff = max(cu(0), player.private_value - price)
         else:
-            p.payoff = cu(0)
+            player.payoff = cu(0)
 
 
-# PAGES
+def page_vars(player: Player):
+    return dict(
+        actual_bidder_count=player.group.actual_bidder_count or current_bidder_count(player),
+        use_flexible_grouping=use_flexible_groups(player),
+    )
+
+
 class Introduction(Page):
-    pass
+    @staticmethod
+    def vars_for_template(player: Player):
+        return page_vars(player)
 
 
 class Bid(Page):
@@ -125,7 +194,9 @@ class ResultsWaitPage(WaitPage):
 
 
 class Results(Page):
-    pass
+    @staticmethod
+    def vars_for_template(player: Player):
+        return page_vars(player)
 
 
 page_sequence = [Unmatched, Introduction, Bid, ResultsWaitPage, Results]

@@ -12,10 +12,40 @@ DOC_PATH = ROOT_DIR / "docs" / "project" / "headcount-matrix.tsv"
 EXPECTED_ODD_BEHAVIOR = {
     "any count": "not applicable",
     "odd-count resilient": "strategy fallback",
+    "fixed-size by design": "skip unmatched",
     "exact multiple of 2": "skip unmatched",
     "exact multiple of 3": "skip unmatched",
     "exact multiple of 4": "skip unmatched",
     "exact multiple of 8": "skip unmatched",
+    "legacy exact multiple of 2; classroom pair-cycle preset available": "pair-cycle spare rotation",
+    "legacy exact multiple of 2; role-balanced classroom preset available": "role-balanced spare rotation",
+    "legacy exact multiple of 8; whole-class classroom market preset available": "whole-class market",
+}
+
+PAIR_CYCLE_APPS = {
+    "ad_nash_demand",
+    "ag_matching_pennies",
+    "ah_coordination",
+    "ai_prisoner_one_rd",
+    "at_bertrand",
+    "au_cournot",
+    "aw_traveler_dilemma",
+}
+
+ROLE_BALANCED_APPS = {
+    "aa_dictator",
+    "al_two_sided_auction",
+    "az_endowment_effect",
+    "ba_gift_exchange",
+}
+
+FIXED_SIZE_APPS = {
+    "ai_prisoner_mult_rd",
+    "bc_asset_market_bubble",
+}
+
+WHOLE_CLASS_MARKET_APPS = {
+    "ak_market_supply_demand",
 }
 
 
@@ -58,7 +88,9 @@ def expected_group_size_label(group_size: object) -> str:
     return str(group_size)
 
 
-def expected_minimum(group_size: object, strategy_fallback: bool) -> str:
+def expected_minimum(app_name: str, group_size: object, strategy_fallback: bool) -> str:
+    if app_name in WHOLE_CLASS_MARKET_APPS:
+        return "4"
     if group_size in (None, 1):
         return "1"
     if strategy_fallback:
@@ -66,11 +98,19 @@ def expected_minimum(group_size: object, strategy_fallback: bool) -> str:
     return str(group_size)
 
 
-def expected_compatibility(group_size: object, strategy_fallback: bool) -> str:
+def expected_compatibility(app_name: str, group_size: object, strategy_fallback: bool) -> str:
     if group_size in (None, 1):
         return "any count"
     if strategy_fallback:
         return "odd-count resilient"
+    if app_name in FIXED_SIZE_APPS:
+        return "fixed-size by design"
+    if app_name in PAIR_CYCLE_APPS:
+        return "legacy exact multiple of 2; classroom pair-cycle preset available"
+    if app_name in ROLE_BALANCED_APPS:
+        return "legacy exact multiple of 2; role-balanced classroom preset available"
+    if app_name in WHOLE_CLASS_MARKET_APPS:
+        return "legacy exact multiple of 8; whole-class classroom market preset available"
     return f"exact multiple of {group_size}"
 
 
@@ -92,8 +132,8 @@ def validate_matrix(rows: dict[str, dict[str, str]], metadata: dict[str, dict[st
         strategy_fallback = metadata[app_name]["strategy_fallback"]
 
         expected_group = expected_group_size_label(group_size)
-        expected_min = expected_minimum(group_size, strategy_fallback)
-        expected_compat = expected_compatibility(group_size, strategy_fallback)
+        expected_min = expected_minimum(app_name, group_size, strategy_fallback)
+        expected_compat = expected_compatibility(app_name, group_size, strategy_fallback)
         expected_odd = EXPECTED_ODD_BEHAVIOR[expected_compat]
 
         if row["group_size"] != expected_group:

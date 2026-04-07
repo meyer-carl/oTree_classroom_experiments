@@ -8,6 +8,23 @@
     </p>
 
     <p>
+        This session has {{ total_traders }} active traders: {{ num_buyers }} buyers and {{ num_sellers }} sellers.
+    </p>
+
+    {{ if classroom_whole_market }}
+        <p>
+            This classroom preset uses the whole active room as one market and generates the buyer-value
+            and seller-cost schedules from the session endpoints.
+        </p>
+    {{ endif }}
+
+    <p>
+        Buyer values (high to low): {{ buyer_schedule_csv }}.
+        <br>
+        Seller costs (low to high): {{ seller_schedule_csv }}.
+    </p>
+
+    <p>
         Buyers submit a bid (the most you will pay). Sellers submit an ask (the least you will accept).
         Bids and asks are collected at the same time. Orders are sorted to find trades.
     </p>

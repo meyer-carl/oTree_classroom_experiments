@@ -1,5 +1,6 @@
 {{ block title }}Round {{ round_number }}{{ endblock }}
 {{ block content }}
+<p>Active participants in your group: {{ actual_group_size }}</p>
 <p>Stock at the start of this round: {{ start_stock }}</p>
 <p>Maximum extraction for each player this round: {{ max_extraction }}</p>
 <p>The stock replenishes at rate {{ regen_rate }} between rounds.</p>

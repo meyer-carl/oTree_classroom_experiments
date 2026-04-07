@@ -1,7 +1,10 @@
 {{ block title }}Results{{ endblock }}
 {{ block content }}
 
+    <p>Active participants in your group: {{ actual_group_size }}</p>
     <p>Number of volunteers: {{ group.num_volunteers }}</p>
+    <p>Successful-volunteering benefit per participant: {{ success_benefit }}</p>
+    <p>Volunteer cost: {{ volunteer_cost }}</p>
     <p>Your payoff: {{ player.payoff }}</p>
 
     {{ next_button }}

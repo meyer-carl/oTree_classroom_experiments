@@ -3,14 +3,22 @@
         <h3>Instructions</h3>
 
         <p>
-            You are grouped with {{ C.NUM_OTHER_PLAYERS }} other participants.
+            You are grouped with {{ other_participants }} other participant(s),
+            for {{ actual_group_size }} active participant(s) in total.
             Each of you decides whether to volunteer.
         </p>
 
         <p>
-            If at least one person volunteers, everyone receives {{ C.GENERAL_BENEFIT }}.
-            Volunteers pay a cost of {{ C.VOLUNTEER_COST }}.
+            If at least one person volunteers, everyone receives {{ success_benefit }}.
+            Volunteers pay a cost of {{ volunteer_cost }}.
             If no one volunteers, everyone receives 0.
         </p>
+
+        {{ if use_flexible_groups }}
+        <p>
+            This classroom-flexible preset keeps the per-person stakes explicit even when
+            the final room divides into differently sized groups.
+        </p>
+        {{ endif }}
     </div>
 </div>

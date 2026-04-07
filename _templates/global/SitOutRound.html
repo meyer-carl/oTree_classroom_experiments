@@ -1,0 +1,20 @@
+{{ block title }}Sit Out This Round{{ endblock }}
+{{ block content }}
+
+    <p>
+        You are not active in this round because the classroom preset is rotating one spare
+        participant to keep the matching structure balanced.
+    </p>
+
+    {{ if total_rounds }}
+        <p>Round {{ current_round }} of {{ total_rounds }}.</p>
+    {{ endif }}
+
+    <p>
+        Your earnings for this round are 0, and your classroom score will still be based on the
+        average across the rounds in which you actively played.
+    </p>
+
+    {{ next_button }}
+
+{{ endblock }}

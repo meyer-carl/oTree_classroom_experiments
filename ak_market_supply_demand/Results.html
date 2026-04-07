@@ -3,6 +3,9 @@
 
     <p>Clearing price: {{ group.clearing_price }}</p>
     <p>Number of trades: {{ group.num_trades }}</p>
+    <p>Total traders: {{ total_traders }} ({{ num_buyers }} buyers, {{ num_sellers }} sellers).</p>
+    <p>Buyer values: {{ buyer_schedule_csv }}.</p>
+    <p>Seller costs: {{ seller_schedule_csv }}.</p>
 
     {{ if player.traded }}
         <p>You traded at price {{ player.trade_price }}.</p>

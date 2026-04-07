@@ -1,6 +1,7 @@
 {{ block title }}Results{{ endblock }}
 {{ block content }}
 
+    <p>Active bidders in your group: {{ actual_bidder_count }}</p>
     <p>True item value: {{ group.item_value }}</p>
     <p>Highest bid: {{ group.highest_bid }}</p>
 
@@ -17,5 +18,7 @@
     <p>Your payoff: {{ player.payoff }}</p>
 
     {{ next_button }}
+
+    {{ include_sibling 'instructions.html' }}
 
 {{ endblock }}

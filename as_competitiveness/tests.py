@@ -48,28 +48,83 @@ class PlayerBot(Bot):
             APP.competitiveness_tournament_winners,
         ) = originals
 
-    def _answers(self, make_one_wrong=False):
+    def _answers(self):
         tasks = json.loads(self.player.task_data)
         field_names = Task.get_form_fields(self.player)
-        answers = {
+        return {
             field_name: task['a'] + task['b']
             for field_name, task in zip(field_names, tasks)
         }
-        if make_one_wrong:
-            answers[field_names[0]] += 1
+
+    def _apply_case_adjustments(self, answers):
+        if self.case == 'tournament' and self.player.id_in_group != 1 and self.player.round_number > 1:
+            first_field = next(iter(answers))
+            answers[first_field] += 1
+            return answers
+
+        if self.case == 'configured_tournament':
+            wrong_answers = 0
+            if self.player.id_in_group == 3:
+                wrong_answers = 1
+            elif self.player.id_in_group == 4:
+                wrong_answers = 2
+            elif self.player.id_in_group > 4:
+                wrong_answers = 0
+            for field_name in list(answers.keys())[:wrong_answers]:
+                answers[field_name] += 1
         return answers
+
+    def _expected_round_payoff(self):
+        if self.case == 'piece_rate':
+            if self.round_number == 2:
+                return cu(120) if self.player.id_in_group == 1 else cu(0)
+            return cu(60)
+
+        if self.case == 'tournament':
+            if self.round_number == 1:
+                return cu(60)
+            return cu(120) if self.player.id_in_group == 1 else cu(0)
+
+        if self.round_number == 1:
+            if self.player.id_in_group in [1, 2] or self.player.id_in_group > 4:
+                return cu(45)
+            if self.player.id_in_group == 3:
+                return cu(30)
+            return cu(15)
+        return cu(75) if self.player.id_in_group in [1, 2] else cu(0)
+
+    def _expected_total_payoff(self):
+        if self.case == 'piece_rate':
+            return cu(240) if self.player.id_in_group == 1 else cu(120)
+        if self.case == 'tournament':
+            return cu(300) if self.player.id_in_group == 1 else cu(60)
+        if self.player.id_in_group in [1, 2]:
+            return cu(195)
+        if self.player.id_in_group == 3:
+            return cu(30)
+        if self.player.id_in_group == 4:
+            return cu(15)
+        return cu(45)
+
+    def _expected_winner_count(self):
+        if self.round_number == 1:
+            return 0
+        if self.case == 'configured_tournament':
+            return 2
+        if self.case == 'piece_rate' and self.round_number == 3:
+            return 0
+        return 1
 
     def play_round(self):
         self._configure_non_default_case()
         originals = self._patch_non_default_helpers()
 
-        if self.case == 'piece_rate' and self.round_number == 1:
+        if self.round_number == 1:
             yield Introduction
-            invalid = self._answers()
-            invalid['answer_1'] = -1
-            yield SubmissionMustFail(Task, invalid)
-        elif self.round_number == 1:
-            yield Introduction
+            if self.case == 'piece_rate':
+                invalid = self._answers()
+                invalid[next(iter(invalid))] = -1
+                yield SubmissionMustFail(Task, invalid)
 
         if self.player.round_number == 3:
             yield SubmissionMustFail(Choice, dict(comp_choice='invalid'))
@@ -79,54 +134,14 @@ class PlayerBot(Bot):
             assert len(Task.get_form_fields(self.player)) == 3
             assert Task.get_timeout_seconds(self.player) == 15
 
-        answers = self._answers(
-            make_one_wrong=self.case == 'tournament'
-            and self.player.id_in_group != 1
-            and self.player.round_number > 1
-        )
-        if self.case == 'configured_tournament':
-            wrong_answers = 0
-            if self.player.id_in_group == 3:
-                wrong_answers = 1
-            elif self.player.id_in_group == 4:
-                wrong_answers = 2
-            for i in range(1, wrong_answers + 1):
-                answers[f'answer_{i}'] += 1
+        answers = self._apply_case_adjustments(self._answers())
         yield Task, answers
-
-        if self.case == 'configured_tournament':
-            set_round_results(self.player.group)
-
-        if self.case == 'piece_rate':
-            expected_round = cu(60)
-            if self.round_number == 2 and self.player.id_in_group == 1:
-                expected_round = cu(120)
-            elif self.round_number == 2:
-                expected_round = cu(0)
-            expect(self.player.group.winner_count, 1 if self.round_number == 2 else 0)
-        elif self.case == 'configured_tournament':
-            if self.round_number == 1:
-                expected_round = {1: cu(45), 2: cu(45), 3: cu(30), 4: cu(15)}[self.player.id_in_group]
-                expect(self.player.group.winner_count, 0)
-            else:
-                expected_round = cu(75) if self.player.id_in_group in [1, 2] else cu(0)
-                expect(self.player.group.winner_count, 2)
-        else:
-            expected_round = cu(60)
-            if self.round_number > 1 and self.player.id_in_group == 1:
-                expected_round = cu(120)
-            elif self.round_number > 1:
-                expected_round = cu(0)
-            expect(self.player.group.winner_count, 0 if self.round_number == 1 else 1)
-
-        expect(self.player.payoff, expected_round)
-        if self.round_number == C.NUM_ROUNDS:
-            total = sum(p.payoff for p in self.player.in_all_rounds())
-            if self.case == 'piece_rate':
-                expect(total, cu(240) if self.player.id_in_group == 1 else cu(120))
-            elif self.case == 'configured_tournament':
-                expect(total, {1: cu(195), 2: cu(195), 3: cu(30), 4: cu(15)}[self.player.id_in_group])
-            else:
-                expect(total, cu(300) if self.player.id_in_group == 1 else cu(60))
         yield Results
+
+        expect(self.player.group.effective_group_size, len(self.player.group.get_players()))
+        expect(self.player.group.winner_count, self._expected_winner_count())
+        expect(self.player.payoff, self._expected_round_payoff())
+        if self.round_number == C.NUM_ROUNDS:
+            expect(sum(player.payoff for player in self.player.in_all_rounds()), self._expected_total_payoff())
+
         self._restore_non_default_helpers(originals)

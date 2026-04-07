@@ -1,10 +1,16 @@
 from otree.api import *
+import math
 import random
 
 from classroom_utils import (
+    bool_config_value,
+    currency_config_value,
     currency_list_config_value,
+    group_matrix_for_sizes,
     is_incomplete_group,
+    int_config_value,
     next_app,
+    partition_group_sizes,
     session_config_value,
     unmatched_template_vars,
 )
@@ -27,10 +33,12 @@ class C(BaseConstants):
 
     NUM_BUYERS = len(BUYER_VALUES)
     NUM_SELLERS = len(SELLER_COSTS)
-    PLAYERS_PER_GROUP = NUM_BUYERS + NUM_SELLERS
+    PLAYERS_PER_GROUP = None
+    HEADCOUNT_GROUP_SIZE = NUM_BUYERS + NUM_SELLERS
 
     PRICE_MIN = cu(0)
     PRICE_MAX = cu(120)
+    PRICE_STEP = 5
 
     # Options: 'midpoint', 'bid', 'ask'
     CLEARING_PRICE_RULE = 'midpoint'
@@ -43,6 +51,10 @@ class Subsession(BaseSubsession):
 class Group(BaseGroup):
     clearing_price = models.CurrencyField(initial=cu(0))
     num_trades = models.IntegerField(initial=0)
+    actual_num_buyers = models.IntegerField(initial=0)
+    actual_num_sellers = models.IntegerField(initial=0)
+    buyer_schedule_csv = models.LongStringField(initial='')
+    seller_schedule_csv = models.LongStringField(initial='')
 
 
 class Player(BasePlayer):
@@ -62,15 +74,103 @@ class Player(BasePlayer):
 
 
 def buyer_values(context):
+    if classroom_whole_market(context):
+        return generated_buyer_values(context, actual_market_buyer_count(context))
     return currency_list_config_value(context, 'buyer_values', C.BUYER_VALUES)
 
 
 def seller_costs(context):
+    if classroom_whole_market(context):
+        return generated_seller_costs(context, actual_market_seller_count(context))
     return currency_list_config_value(context, 'seller_costs', C.SELLER_COSTS)
 
 
 def required_group_size(context):
+    if classroom_whole_market(context):
+        return market_min_headcount(context)
     return len(buyer_values(context)) + len(seller_costs(context))
+
+
+def classroom_whole_market(context):
+    return bool_config_value(context, 'classroom_whole_market', False)
+
+
+def market_min_headcount(context):
+    return int_config_value(context, 'market_min_headcount', 4)
+
+
+def buyer_value_high(context):
+    return currency_config_value(context, 'buyer_value_high', C.BUYER_VALUES[0])
+
+
+def buyer_value_low(context):
+    return currency_config_value(context, 'buyer_value_low', C.BUYER_VALUES[-1])
+
+
+def seller_cost_low(context):
+    return currency_config_value(context, 'seller_cost_low', C.SELLER_COSTS[0])
+
+
+def seller_cost_high(context):
+    return currency_config_value(context, 'seller_cost_high', C.SELLER_COSTS[-1])
+
+
+def round_classroom_price(value):
+    return cu(int(round(float(value) / C.PRICE_STEP) * C.PRICE_STEP))
+
+
+def linear_schedule(count, start, end):
+    if count <= 0:
+        return []
+    if count == 1:
+        return [round_classroom_price(start)]
+    step = (end - start) / (count - 1)
+    values = [round_classroom_price(start + step * index) for index in range(count)]
+    return values
+
+
+def generated_buyer_values(context, count):
+    values = linear_schedule(count, buyer_value_high(context), buyer_value_low(context))
+    return sorted(values, reverse=True)
+
+
+def generated_seller_costs(context, count):
+    values = linear_schedule(count, seller_cost_low(context), seller_cost_high(context))
+    return sorted(values)
+
+
+def actual_market_headcount(context):
+    group = getattr(context, 'group', None)
+    if group:
+        return len(group.get_players())
+    subsession = getattr(context, 'subsession', None)
+    if subsession:
+        return len(subsession.get_players())
+    return int_config_value(context, 'num_demo_participants', C.HEADCOUNT_GROUP_SIZE)
+
+
+def actual_market_buyer_count(context):
+    group = getattr(context, 'group', None)
+    if group and group.actual_num_buyers:
+        return group.actual_num_buyers
+    total_players = actual_market_headcount(context)
+    if classroom_whole_market(context):
+        return math.ceil(total_players / 2)
+    return len(currency_list_config_value(context, 'buyer_values', C.BUYER_VALUES))
+
+
+def actual_market_seller_count(context):
+    group = getattr(context, 'group', None)
+    if group and group.actual_num_sellers:
+        return group.actual_num_sellers
+    total_players = actual_market_headcount(context)
+    if classroom_whole_market(context):
+        return total_players - actual_market_buyer_count(context)
+    return len(currency_list_config_value(context, 'seller_costs', C.SELLER_COSTS))
+
+
+def schedule_csv(values):
+    return ", ".join(str(int(value)) for value in values)
 
 
 def clearing_price_rule(context):
@@ -85,11 +185,31 @@ def market_price_cap(context):
 
 # FUNCTIONS
 def creating_session(subsession: Subsession):
+    if classroom_whole_market(subsession):
+        subsession.set_group_matrix([list(subsession.get_players())])
+    else:
+        players = list(subsession.get_players())
+        subsession.set_group_matrix(
+            group_matrix_for_sizes(
+                players,
+                partition_group_sizes(
+                    len(players),
+                    C.HEADCOUNT_GROUP_SIZE,
+                    allow_variable_group_sizes=False,
+                    minimum_group_size=1,
+                ),
+            )
+        )
+
     for group in subsession.get_groups():
         players = group.get_players()
         expected = required_group_size(subsession)
-        if len(players) != expected:
+        if len(players) < expected:
             # leave role/value assignment empty for unmatched groups
+            group.actual_num_buyers = 0
+            group.actual_num_sellers = 0
+            group.buyer_schedule_csv = ''
+            group.seller_schedule_csv = ''
             for player in players:
                 player.is_buyer = False
                 player.private_value = cu(0)
@@ -97,10 +217,22 @@ def creating_session(subsession: Subsession):
             continue
 
         random.shuffle(players)
-        session_buyer_values = buyer_values(subsession)
-        session_seller_costs = seller_costs(subsession)
+        if classroom_whole_market(subsession):
+            buyer_count = math.ceil(len(players) / 2)
+            seller_count = len(players) - buyer_count
+            session_buyer_values = generated_buyer_values(subsession, buyer_count)
+            session_seller_costs = generated_seller_costs(subsession, seller_count)
+        else:
+            session_buyer_values = buyer_values(subsession)
+            session_seller_costs = seller_costs(subsession)
+
         random.shuffle(session_buyer_values)
         random.shuffle(session_seller_costs)
+
+        group.actual_num_buyers = len(session_buyer_values)
+        group.actual_num_sellers = len(session_seller_costs)
+        group.buyer_schedule_csv = schedule_csv(sorted(session_buyer_values, reverse=True))
+        group.seller_schedule_csv = schedule_csv(sorted(session_seller_costs))
 
         buyers = players[: len(session_buyer_values)]
         sellers = players[len(session_buyer_values) :]
@@ -186,9 +318,13 @@ class Introduction(Page):
     @staticmethod
     def vars_for_template(player: Player):
         return dict(
-            num_buyers=len(buyer_values(player)),
-            num_sellers=len(seller_costs(player)),
+            num_buyers=player.group.actual_num_buyers or len(buyer_values(player)),
+            num_sellers=player.group.actual_num_sellers or len(seller_costs(player)),
             clearing_rule=clearing_price_rule(player),
+            classroom_whole_market=classroom_whole_market(player),
+            buyer_schedule_csv=player.group.buyer_schedule_csv or schedule_csv(sorted(buyer_values(player), reverse=True)),
+            seller_schedule_csv=player.group.seller_schedule_csv or schedule_csv(sorted(seller_costs(player))),
+            total_traders=len(player.group.get_players()),
         )
 
 
@@ -198,7 +334,13 @@ class Order(Page):
 
     @staticmethod
     def vars_for_template(player: Player):
-        return dict(role=player.role(), price_cap=market_price_cap(player))
+        return dict(
+            role=player.role(),
+            price_cap=market_price_cap(player),
+            total_traders=len(player.group.get_players()),
+            num_buyers=player.group.actual_num_buyers or len(buyer_values(player)),
+            num_sellers=player.group.actual_num_sellers or len(seller_costs(player)),
+        )
 
     @staticmethod
     def error_message(player: Player, values):
@@ -232,6 +374,12 @@ class Results(Page):
             buyers=buyers,
             sellers=sellers,
             clearing_rule=clearing_price_rule(player),
+            total_traders=len(group.get_players()),
+            num_buyers=group.actual_num_buyers or len(buyer_values(player)),
+            num_sellers=group.actual_num_sellers or len(seller_costs(player)),
+            buyer_schedule_csv=group.buyer_schedule_csv or schedule_csv(sorted(buyer_values(player), reverse=True)),
+            seller_schedule_csv=group.seller_schedule_csv or schedule_csv(sorted(seller_costs(player))),
+            classroom_whole_market=classroom_whole_market(player),
         )
 
 

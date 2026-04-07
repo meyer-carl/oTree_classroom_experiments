@@ -3,11 +3,13 @@ import json
 import random
 
 from classroom_utils import (
+    bool_config_value,
+    bounded_group_matrix,
     currency_config_value,
+    group_matrix_for_sizes,
     int_config_value,
-    is_incomplete_group,
     next_app,
-    unmatched_template_vars,
+    partition_group_sizes,
 )
 
 
@@ -20,7 +22,8 @@ then choose their preferred compensation scheme.
 
 class C(BaseConstants):
     NAME_IN_URL = 'competitiveness'
-    PLAYERS_PER_GROUP = 4
+    PLAYERS_PER_GROUP = None
+    HEADCOUNT_GROUP_SIZE = 4
     NUM_ROUNDS = 3
 
     NUM_TASKS = 6
@@ -40,6 +43,7 @@ class Subsession(BaseSubsession):
 class Group(BaseGroup):
     max_score = models.IntegerField(initial=0)
     winner_count = models.IntegerField(initial=0)
+    effective_group_size = models.IntegerField(initial=0)
 
 
 class Player(BasePlayer):
@@ -52,35 +56,44 @@ class Player(BasePlayer):
     is_tournament_winner = models.BooleanField(initial=False)
 
 
-# Helper to detect incomplete groups
-def is_unmatched(player: Player):
-    return is_incomplete_group(player, C.PLAYERS_PER_GROUP)
-
-
-# Page to notify unmatched participants and skip the app
-class Unmatched(Page):
-    template_name = 'global/Unmatched.html'
-
-    @staticmethod
-    def is_displayed(player: Player):
-        return is_unmatched(player) and player.round_number == 1
-
-    @staticmethod
-    def vars_for_template(player: Player):
-        return unmatched_template_vars(C.PLAYERS_PER_GROUP)
-
-    @staticmethod
-    def app_after_this_page(player: Player, upcoming_apps):
-        return next_app(upcoming_apps)
-
-
-# Dynamic answer fields
 for i in range(1, C.NUM_TASKS + 1):
     setattr(
         Player,
         f"answer_{i}",
         models.IntegerField(min=0, blank=True, label=f"Answer {i}"),
     )
+
+
+def use_flexible_groups(context):
+    return bool_config_value(context, 'competitiveness_flexible_grouping', False)
+
+
+def target_group_size(context):
+    default_size = C.HEADCOUNT_GROUP_SIZE if not use_flexible_groups(context) else 4
+    return max(3, int_config_value(context, 'competitiveness_target_group_size', default_size))
+
+
+def maximum_group_size(context):
+    if not use_flexible_groups(context):
+        return C.HEADCOUNT_GROUP_SIZE
+    configured = int_config_value(context, 'competitiveness_max_group_size', 5)
+    return max(target_group_size(context), configured)
+
+
+def minimum_group_size(context):
+    if not use_flexible_groups(context):
+        return C.HEADCOUNT_GROUP_SIZE
+    configured = int_config_value(context, 'competitiveness_min_group_size', 3)
+    return max(3, min(configured, maximum_group_size(context)))
+
+
+def current_group_size(context):
+    group = getattr(context, 'group', context)
+    return len(group.get_players())
+
+
+def is_unmatched(player: Player):
+    return current_group_size(player) < minimum_group_size(player)
 
 
 def competitiveness_num_tasks(context):
@@ -112,28 +125,73 @@ def competitiveness_tournament_winners(context):
     configured = int_config_value(
         context, 'competitiveness_tournament_winners', C.TOURNAMENT_WINNERS
     )
-    return max(1, min(C.PLAYERS_PER_GROUP, configured))
+    return max(1, configured)
 
 
-# FUNCTIONS
+def effective_tournament_winners(context):
+    group = getattr(context, 'group', context)
+    return min(current_group_size(group), competitiveness_tournament_winners(group))
+
+
+class Unmatched(Page):
+    template_name = 'global/Unmatched.html'
+
+    @staticmethod
+    def is_displayed(player: Player):
+        return is_unmatched(player) and player.round_number == 1
+
+    @staticmethod
+    def vars_for_template(player: Player):
+        return dict(required_size=minimum_group_size(player))
+
+    @staticmethod
+    def app_after_this_page(player: Player, upcoming_apps):
+        return next_app(upcoming_apps)
+
+
 def creating_session(subsession: Subsession):
-    for p in subsession.get_players():
+    if subsession.round_number == 1:
+        players = subsession.get_players()
+        if use_flexible_groups(subsession):
+            random.shuffle(players)
+            subsession.set_group_matrix(
+                bounded_group_matrix(
+                    players,
+                    target_group_size(subsession),
+                    min_group_size=minimum_group_size(subsession),
+                    max_group_size=maximum_group_size(subsession),
+                )
+            )
+        else:
+            subsession.set_group_matrix(
+                group_matrix_for_sizes(
+                    players,
+                    partition_group_sizes(
+                        len(players),
+                        C.HEADCOUNT_GROUP_SIZE,
+                        allow_variable_group_sizes=False,
+                        minimum_group_size=1,
+                    ),
+                )
+            )
+    else:
+        subsession.group_like_round(1)
+
+    for player in subsession.get_players():
         tasks = []
-        for _ in range(competitiveness_num_tasks(p)):
-            a = random.randint(competitiveness_task_min(p), competitiveness_task_max(p))
-            b = random.randint(competitiveness_task_min(p), competitiveness_task_max(p))
+        for _ in range(competitiveness_num_tasks(player)):
+            a = random.randint(competitiveness_task_min(player), competitiveness_task_max(player))
+            b = random.randint(competitiveness_task_min(player), competitiveness_task_max(player))
             tasks.append({'a': a, 'b': b})
-        p.task_data = json.dumps(tasks)
+        player.task_data = json.dumps(tasks)
 
 
 def _get_tasks(player: Player):
     tasks = json.loads(player.task_data)
-    task_list = []
-    for i, task in enumerate(tasks, start=1):
-        task_list.append(
-            dict(index=i, a=task['a'], b=task['b'], field=f'answer_{i}')
-        )
-    return task_list
+    return [
+        dict(index=i, a=task['a'], b=task['b'], field=f'answer_{i}')
+        for i, task in enumerate(tasks, start=1)
+    ]
 
 
 def _count_correct(player: Player):
@@ -149,52 +207,66 @@ def _count_correct(player: Player):
 def _tournament_winners(players, top_n):
     if not players:
         return []
-    ordered_players = sorted(players, key=lambda p: (-p.num_correct, p.id_in_group))
+    ordered_players = sorted(players, key=lambda player: (-player.num_correct, player.id_in_group))
     return ordered_players[: min(top_n, len(ordered_players))]
 
 
 def set_round_results(group: Group):
     players = group.get_players()
+    group.effective_group_size = len(players)
 
-    for p in players:
-        p.num_correct = _count_correct(p)
-        p.is_tournament_winner = False
+    for player in players:
+        player.num_correct = _count_correct(player)
+        player.is_tournament_winner = False
 
-    group.max_score = max([p.num_correct for p in players]) if players else 0
+    group.max_score = max([player.num_correct for player in players]) if players else 0
+    winner_slots = effective_tournament_winners(group)
 
     round_number = group.subsession.round_number
     if round_number == 1:
-        for p in players:
-            p.payoff = p.num_correct * competitiveness_piece_rate(group)
+        for player in players:
+            player.payoff = player.num_correct * competitiveness_piece_rate(group)
         group.winner_count = 0
         return
 
     if round_number == 2:
-        winners = _tournament_winners(players, competitiveness_tournament_winners(group))
+        winners = _tournament_winners(players, winner_slots)
         group.winner_count = len(winners)
-        for p in players:
-            if p in winners:
-                p.is_tournament_winner = True
-                p.payoff = p.num_correct * competitiveness_tournament_rate(group)
+        for player in players:
+            if player in winners:
+                player.is_tournament_winner = True
+                player.payoff = player.num_correct * competitiveness_tournament_rate(group)
             else:
-                p.payoff = cu(0)
+                player.payoff = cu(0)
         return
 
-    tournament_players = [p for p in players if p.comp_choice == 'tournament']
-    winners = _tournament_winners(tournament_players, competitiveness_tournament_winners(group))
+    tournament_players = [player for player in players if player.comp_choice == 'tournament']
+    winners = _tournament_winners(tournament_players, winner_slots)
     group.winner_count = len(winners)
 
-    for p in players:
-        if p.comp_choice == 'piece':
-            p.payoff = p.num_correct * competitiveness_piece_rate(group)
-        elif p in winners:
-            p.is_tournament_winner = True
-            p.payoff = p.num_correct * competitiveness_tournament_rate(group)
+    for player in players:
+        if player.comp_choice == 'piece':
+            player.payoff = player.num_correct * competitiveness_piece_rate(group)
+        elif player in winners:
+            player.is_tournament_winner = True
+            player.payoff = player.num_correct * competitiveness_tournament_rate(group)
         else:
-            p.payoff = cu(0)
+            player.payoff = cu(0)
 
 
-# PAGES
+def page_vars(player: Player):
+    return dict(
+        piece_rate=competitiveness_piece_rate(player),
+        tournament_rate=competitiveness_tournament_rate(player),
+        tournament_winners=effective_tournament_winners(player.group),
+        configured_tournament_winners=competitiveness_tournament_winners(player),
+        task_count=competitiveness_num_tasks(player),
+        time_limit_seconds=competitiveness_time_limit(player),
+        actual_group_size=player.group.effective_group_size or current_group_size(player),
+        use_flexible_groups=use_flexible_groups(player),
+    )
+
+
 class Introduction(Page):
     @staticmethod
     def is_displayed(player: Player):
@@ -202,13 +274,7 @@ class Introduction(Page):
 
     @staticmethod
     def vars_for_template(player: Player):
-        return dict(
-            piece_rate=competitiveness_piece_rate(player),
-            tournament_rate=competitiveness_tournament_rate(player),
-            tournament_winners=competitiveness_tournament_winners(player),
-            task_count=competitiveness_num_tasks(player),
-            time_limit_seconds=competitiveness_time_limit(player),
-        )
+        return page_vars(player)
 
 
 class Choice(Page):
@@ -251,11 +317,7 @@ class Results(Page):
             round_number=player.round_number,
             max_score=player.group.max_score,
             winner_count=player.group.winner_count,
-            piece_rate=competitiveness_piece_rate(player),
-            tournament_rate=competitiveness_tournament_rate(player),
-            tournament_winners=competitiveness_tournament_winners(player),
-            task_count=competitiveness_num_tasks(player),
-            time_limit_seconds=competitiveness_time_limit(player),
+            **page_vars(player),
         )
 
 

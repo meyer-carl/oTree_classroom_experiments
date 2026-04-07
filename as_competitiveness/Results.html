@@ -2,6 +2,7 @@
 {{ block content }}
 
     <p>Round {{ round_number }} results.</p>
+    <p>Active participants in your group: {{ actual_group_size }}.</p>
     <p>You answered {{ player.num_correct }} correctly.</p>
 
     {{ if round_number == 1 }}

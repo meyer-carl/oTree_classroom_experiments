@@ -4,6 +4,14 @@ from . import *
 
 class PlayerBot(Bot):
     def play_round(self):
-        yield Introduction
+        if self.round_number > pair_cycle_rounds(self.player):
+            return
+
+        if self.player.active_this_round is False:
+            yield SitOutRound
+            return
+
+        if self.round_number == 1:
+            yield Introduction
         yield Decide, dict(price=cu(30))
         yield Results

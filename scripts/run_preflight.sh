@@ -15,7 +15,7 @@ fi
 "$PROJECT_PYTHON" scripts/verify_test_coverage.py
 "$PROJECT_PYTHON" scripts/audit_instructor_docs.py
 "$PROJECT_PYTHON" scripts/audit_headcount_matrix.py
-"$PROJECT_PYTHON" -m pytest tests/test_classroom_tools.py tests/test_instructor_docs.py -q
+"$PROJECT_PYTHON" -m pytest tests/test_classroom_tools.py tests/test_flexible_headcount.py tests/test_instructor_docs.py -q
 "$PROJECT_PYTHON" -m compileall classroom_utils.py settings.py \
   scripts tests \
   aa_dictator ab_ultimatum ac_trust ad_nash_demand ae_guess_two_thirds \

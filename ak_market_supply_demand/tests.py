@@ -38,26 +38,38 @@ class PlayerBot(Bot):
             expect(self.player.traded, False)
             expect(self.player.payoff, cu(0))
         else:
-            expected_price = cu(60)
-            if self.case == 'truthful_bid_rule':
-                original = APP.clearing_price_rule
-                APP.clearing_price_rule = lambda context: 'bid'
-                set_market_outcome(self.player.group)
-                APP.clearing_price_rule = original
-                expected_price = cu(70)
-            elif self.case == 'truthful_ask_rule':
-                original = APP.clearing_price_rule
-                APP.clearing_price_rule = lambda context: 'ask'
-                set_market_outcome(self.player.group)
-                APP.clearing_price_rule = original
-                expected_price = cu(50)
-            expect(self.player.group.num_trades, 4)
+            buyers = sorted(
+                [p for p in self.player.group.get_players() if p.is_buyer],
+                key=lambda p: p.order_price,
+                reverse=True,
+            )
+            sellers = sorted(
+                [p for p in self.player.group.get_players() if not p.is_buyer],
+                key=lambda p: p.order_price,
+            )
+            expected_trades = 0
+            for buyer, seller in zip(buyers, sellers):
+                if buyer.order_price >= seller.order_price:
+                    expected_trades += 1
+                else:
+                    break
+            expect(self.player.group.num_trades, expected_trades)
+            expected_price = cu(0)
+            if expected_trades:
+                marginal_bid = buyers[expected_trades - 1].order_price
+                marginal_ask = sellers[expected_trades - 1].order_price
+                expected_price = APP._clearing_price(self.player.group, marginal_bid, marginal_ask)
             expect(self.player.group.clearing_price, expected_price)
-            expect(self.player.traded, True)
-            if self.player.is_buyer:
+            expected_trading_buyers = buyers[:expected_trades]
+            expected_trading_sellers = sellers[:expected_trades]
+            expected_traded = self.player in expected_trading_buyers or self.player in expected_trading_sellers
+            expect(self.player.traded, expected_traded)
+            if self.player.is_buyer and expected_traded:
                 expect(self.player.payoff, self.player.private_value - expected_price)
-            else:
+            elif not self.player.is_buyer and expected_traded:
                 expect(self.player.payoff, expected_price - self.player.private_cost)
+            else:
+                expect(self.player.payoff, cu(0))
         yield Results
 
 
@@ -83,3 +95,18 @@ def test_market_price_cap_tracks_configured_schedule():
         Order.error_message(buyer, {'order_price': cu(151)})
         == f'Order price must be between {C.PRICE_MIN} and {cu(150)} for this session.'
     )
+
+
+def test_whole_class_market_split_uses_actual_attendance():
+    session = SimpleNamespace(config={'classroom_whole_market': True})
+    group = SimpleNamespace(
+        session=session,
+        actual_num_buyers=3,
+        actual_num_sellers=2,
+        get_players=lambda: [1, 2, 3, 4, 5],
+    )
+
+    assert actual_market_buyer_count(group) == 3
+    assert actual_market_seller_count(group) == 2
+    assert generated_buyer_values(group, 3) == [cu(100), cu(85), cu(70)]
+    assert generated_seller_costs(group, 2) == [cu(20), cu(50)]

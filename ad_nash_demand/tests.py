@@ -10,17 +10,25 @@ class PlayerBot(Bot):
     ]
 
     def play_round(self):
+        if self.round_number > pair_cycle_rounds(self.player):
+            return
+
+        if self.player.active_this_round is False:
+            yield SitOutRound
+            expect(self.player.payoff, cu(0))
+            return
 
         # start
-        yield Introduction
+        if self.round_number == 1:
+            yield Introduction
 
         if self.case == 'success':
             request = cu(10)
             yield Request, dict(request=request)
             yield Results
-            expect(self.player.payoff, request)
+            expect(self.player.raw_round_payoff, request)
 
         if self.case == 'greedy':
             yield Request, dict(request=C.AMOUNT_SHARED)
             yield Results
-            expect(self.player.payoff, 0)
+            expect(self.player.raw_round_payoff, cu(0))

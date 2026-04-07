@@ -1,6 +1,8 @@
 {{ block title }}Results{{ endblock }}
 {{ block content }}
 
+    <p>Active bidders in your group: {{ actual_bidder_count }}</p>
+
     {{ if group.sold }}
         <p>Winning price: {{ group.winning_price }}</p>
         {{ if player.is_winner }}

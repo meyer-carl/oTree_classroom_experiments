@@ -2,6 +2,7 @@
 {{ block content }}
 
     <p>You are a <strong>{{ role }}</strong>.</p>
+    <p>This market has {{ total_traders }} traders: {{ num_buyers }} buyers and {{ num_sellers }} sellers.</p>
 
     {{ if player.is_buyer }}
         <p>Your private value is {{ player.private_value }}.</p>
